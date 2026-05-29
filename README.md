@@ -162,7 +162,7 @@ All models are accessed through NVIDIA's unified API. Each group can independent
 
 ```bash
 # Clone or download the bot files
-mkdir yasir-bot && cd yasir-bot
+mkdir chatbot-bot && cd chatbot-bot
 
 # Create a virtual environment (recommended)
 python -m venv venv
@@ -175,7 +175,7 @@ pip install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl
 
 ### 5. Configure the Bot
 
-Open `yasir.py` and update the following values at the top of the file:
+Open `main.py` and update the following values at the top of the file:
 
 ```python
 # Replace these with your actual values
