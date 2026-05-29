@@ -1,4 +1,4 @@
-# Yasir Bot
+# AI Chatbot
 
 > A powerful, multi-model AI Telegram bot that acts as your group's intelligent assistant — capable of reading files, analyzing images, managing conversations, and publishing content to Telegraph.
 
