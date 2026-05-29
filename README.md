@@ -569,6 +569,7 @@ This project is provided as-is for personal use. Modify and distribute as needed
 
 ---
 
-**Yasir Bot** — Built with Python, aiogram, and NVIDIA AI
+**AIChatbot Bot** — Built with Python, aiogram, and NVIDIA AI
+**This Bot is completely vibecoded by Ai and creativty is done by Dhruv**
 
 Contact: [@itznik_x](https://t.me/itznik_x)
