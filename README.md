@@ -1,451 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yasir Bot - AI Telegram Group Manager | Documentation</title>
-    <style>
-        :root {
-            --bg: #0d1117;
-            --card: #161b22;
-            --border: #30363d;
-            --text: #e6edf3;
-            --text-muted: #8b949e;
-            --accent: #58a6ff;
-            --accent-hover: #79c0ff;
-            --green: #3fb950;
-            --orange: #d29922;
-            --red: #f85149;
-            --purple: #bc8cff;
-            --code-bg: #0d1117;
-            --tag-bg: #1f2937;
-        }
+# Yasir Bot
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+> A powerful, multi-model AI Telegram bot that acts as your group's intelligent assistant — capable of reading files, analyzing images, managing conversations, and publishing content to Telegraph.
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.7;
-            font-size: 16px;
-        }
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
+![aiogram](https://img.shields.io/badge/aiogram-3.x-00ADD8?style=flat-square&logo=telegram&logoColor=white)
+![NVIDIA](https://img.shields.io/badge/NVIDIA-API-76B900?style=flat-square&logo=nvidia&logoColor=white)
+![Models](https://img.shields.io/badge/AI_Models-6-7C3AED?style=flat-square)
 
-        a { color: var(--accent); text-decoration: none; }
-        a:hover { color: var(--accent-hover); text-decoration: underline; }
+---
 
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+## Table of Contents
 
-        /* Hero */
-        .hero {
-            text-align: center;
-            padding: 60px 20px 40px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 40px;
-        }
-        .hero h1 {
-            font-size: 2.8em;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--accent), var(--purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 12px;
-        }
-        .hero p {
-            font-size: 1.2em;
-            color: var(--text-muted);
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        .badge-row {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-            border: 1px solid var(--border);
-            background: var(--tag-bg);
-            color: var(--text-muted);
-        }
-        .badge.blue { color: var(--accent); border-color: var(--accent); }
-        .badge.green { color: var(--green); border-color: var(--green); }
-        .badge.orange { color: var(--orange); border-color: var(--orange); }
-        .badge.purple { color: var(--purple); border-color: var(--purple); }
+1. [Problem It Solves](#problem-it-solves)
+2. [Features](#features)
+3. [Architecture Overview](#architecture-overview)
+4. [Supported AI Models](#supported-ai-models)
+5. [Prerequisites](#prerequisites)
+6. [Step-by-Step Setup](#step-by-step-setup)
+7. [Configuration](#configuration)
+8. [Bot Commands Reference](#bot-commands-reference)
+9. [Usage Guide](#usage-guide)
+10. [File Reading Capabilities](#file-reading-capabilities)
+11. [Telegraph Publishing](#telegraph-publishing)
+12. [Data Storage](#data-storage)
+13. [Security Considerations](#security-considerations)
+14. [Troubleshooting](#troubleshooting)
+15. [Dependencies](#dependencies)
+16. [Running as a Background Service](#running-as-a-background-service)
+17. [License](#license)
 
-        /* Sections */
-        h2 {
-            font-size: 1.8em;
-            font-weight: 700;
-            margin: 50px 0 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
-        }
-        h2 .icon { margin-right: 10px; }
-        h3 {
-            font-size: 1.3em;
-            font-weight: 600;
-            margin: 30px 0 12px;
-            color: var(--text);
-        }
-        h4 {
-            font-size: 1.05em;
-            font-weight: 600;
-            margin: 20px 0 8px;
-            color: var(--text-muted);
-        }
-        p, li { color: var(--text); }
-        p { margin-bottom: 12px; }
+---
 
-        /* Cards */
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 24px;
-            margin: 16px 0;
-        }
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin: 16px 0;
-        }
-        .card-grid .card h4 {
-            margin-top: 0;
-            color: var(--accent);
-        }
+## Problem It Solves
 
-        /* Problem statement */
-        .problem-card {
-            background: linear-gradient(135deg, #1a1033, #0d1117);
-            border-left: 4px solid var(--red);
-        }
-        .solution-card {
-            background: linear-gradient(135deg, #0d1f17, #0d1117);
-            border-left: 4px solid var(--green);
-        }
+### The Challenge
 
-        /* Code */
-        code {
-            background: var(--code-bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.9em;
-            color: var(--accent);
-        }
-        pre {
-            background: var(--code-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px 20px;
-            overflow-x: auto;
-            margin: 12px 0;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.88em;
-            line-height: 1.6;
-            color: var(--text);
-        }
-        pre code {
-            background: none;
-            border: none;
-            padding: 0;
-            color: var(--text);
-        }
-        .comment { color: #6e7681; }
-        .keyword { color: var(--red); }
-        .string { color: var(--green); }
-        .cmd { color: var(--orange); }
-        .flag { color: var(--purple); }
+Teams and communities using Telegram groups face several pain points when trying to leverage AI:
 
-        /* Tables */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0;
-            font-size: 0.95em;
-        }
-        th, td {
-            padding: 10px 14px;
-            text-align: left;
-            border: 1px solid var(--border);
-        }
-        th {
-            background: var(--card);
-            font-weight: 600;
-            color: var(--accent);
-        }
-        td { background: var(--bg); }
-        tr:hover td { background: #13181f; }
+- **Fragmented tools** — Needing separate bots or apps for AI chat, file analysis, image recognition, and content publishing.
+- **Single-model lock-in** — Most AI bots only support one model, limiting flexibility for different tasks (reasoning vs. coding vs. vision).
+- **No group-level control** — Anyone can spam the bot in groups with no authorization mechanism.
+- **Context loss** — Bots forget previous messages, requiring users to repeat context every time.
+- **File analysis friction** — Having to copy-paste file contents manually instead of just sending the file.
+- **Long responses break** — AI responses with code blocks or long text get mangled by Telegram's formatting limits.
 
-        /* Lists */
-        ul, ol {
-            padding-left: 24px;
-            margin: 8px 0 16px;
-        }
-        li { margin-bottom: 6px; }
+### The Solution
 
-        /* Step list */
-        .steps { counter-reset: step; list-style: none; padding-left: 0; }
-        .steps li {
-            counter-increment: step;
-            padding: 16px 16px 16px 60px;
-            position: relative;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-        .steps li::before {
-            content: counter(step);
-            position: absolute;
-            left: 16px;
-            top: 16px;
-            width: 30px;
-            height: 30px;
-            background: var(--accent);
-            color: var(--bg);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.85em;
-        }
+Yasir Bot addresses all of these with a single, unified Telegram bot:
 
-        /* Warning/info boxes */
-        .callout {
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin: 16px 0;
-            font-size: 0.95em;
-        }
-        .callout-warning {
-            background: #2d1b00;
-            border: 1px solid var(--orange);
-            color: var(--orange);
-        }
-        .callout-info {
-            background: #0a1929;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-        }
-        .callout-danger {
-            background: #2d0a0a;
-            border: 1px solid var(--red);
-            color: var(--red);
-        }
-        .callout-success {
-            background: #0a2d14;
-            border: 1px solid var(--green);
-            color: var(--green);
-        }
+- **6 AI models** in one bot — switch per group based on the task at hand.
+- **Group authorization** — only the bot owner can activate/deactivate the bot in groups.
+- **Persistent conversation history** — per-user memory across messages with configurable depth.
+- **Universal file reader** — send any supported file directly to the bot and get AI-powered analysis.
+- **Vision support** — send images with questions and get intelligent descriptions using vision-capable models.
+- **Telegraph integration** — publish AI responses, text, or images directly to Telegraph pages.
+- **Smart MarkdownV2 formatting** — responses are properly formatted for Telegram with code blocks, bold, italic, and more.
+- **Auto file generation** — the AI can create files (code, documents, PDFs) and send them back to the user.
 
-        /* Architecture diagram */
-        .arch-diagram {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            font-family: 'SFMono-Regular', Consolas, monospace;
-            font-size: 0.85em;
-            line-height: 1.8;
-            overflow-x: auto;
-            white-space: pre;
-            color: var(--text-muted);
-        }
+---
 
-        /* Footer */
-        footer {
-            margin-top: 60px;
-            padding: 30px 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }
+## Features
 
-        /* Separator */
-        hr {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 40px 0;
-        }
+| Feature | Description |
+|---------|-------------|
+| **Multi-Model AI Chat** | Choose from 6 different AI models per group. Each model excels at different tasks — reasoning, coding, general chat, or multimodal analysis. |
+| **Group Authorization** | Owner-controlled access. Only the bot owner can authorize which groups can use the bot. Unauthorized groups are completely ignored. |
+| **File Reading & Analysis** | Send files directly to the bot. Supports 50+ file types including PDF, DOCX, XLSX, code files, and ZIP/TAR archives. |
+| **Image Analysis** | Send photos with `/q` and get AI-powered descriptions using vision-capable models (Nemotron, Phi-4). |
+| **Conversation Memory** | Per-user conversation history (up to 20 messages). The bot remembers context across messages for natural dialogue. |
+| **Telegraph Publishing** | Publish text, code, or images to Telegraph with a single command. Supports image positioning (above/below text). |
+| **File Generation** | The AI can create files in its response using a structured format. The bot extracts them and sends as downloadable attachments. |
+| **Smart Formatting** | AI responses are automatically converted to Telegram MarkdownV2 with proper escaping, code blocks, bold, italic, and links. |
 
-        /* Smooth scroll */
-        html { scroll-behavior: smooth; }
+---
 
-        /* TOC */
-        .toc {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 24px 30px;
-            margin: 20px 0 40px;
-        }
-        .toc h3 { margin-top: 0; }
-        .toc ol { margin: 0; }
-        .toc li { margin-bottom: 4px; }
-        .toc a { font-size: 0.95em; }
+## Architecture Overview
 
-        /* Model cards */
-        .model-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 14px 18px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .model-card .model-name { font-weight: 600; flex: 1; }
-        .model-card .model-id { font-family: monospace; color: var(--text-muted); font-size: 0.85em; }
-        .model-card .model-badge {
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75em;
-            font-weight: 600;
-        }
-        .vision-badge { background: #1f2937; color: var(--green); border: 1px solid var(--green); }
-        .text-badge { background: #1f2937; color: var(--text-muted); border: 1px solid var(--border); }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .hero h1 { font-size: 2em; }
-            .card-grid { grid-template-columns: 1fr; }
-            .container { padding: 12px; }
-            h2 { font-size: 1.4em; }
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-
-    <!-- ==================== HERO ==================== -->
-    <div class="hero">
-        <h1>Yasir Bot</h1>
-        <p>A powerful, multi-model AI Telegram bot that acts as your group's intelligent assistant — capable of reading files, analyzing images, managing conversations, and publishing content to Telegraph.</p>
-        <div class="badge-row">
-            <span class="badge blue">Python 3.10+</span>
-            <span class="badge green">aiogram 3.x</span>
-            <span class="badge orange">NVIDIA API</span>
-            <span class="badge purple">6 AI Models</span>
-        </div>
-    </div>
-
-    <!-- ==================== TABLE OF CONTENTS ==================== -->
-    <div class="toc">
-        <h3>Table of Contents</h3>
-        <ol>
-            <li><a href="#problem">Problem It Solves</a></li>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#architecture">Architecture Overview</a></li>
-            <li><a href="#models">Supported AI Models</a></li>
-            <li><a href="#prerequisites">Prerequisites</a></li>
-            <li><a href="#setup">Step-by-Step Setup</a></li>
-            <li><a href="#configuration">Configuration</a></li>
-            <li><a href="#commands">Bot Commands Reference</a></li>
-            <li><a href="#usage">Usage Guide</a></li>
-            <li><a href="#file-reading">File Reading Capabilities</a></li>
-            <li><a href="#telegraph">Telegraph Publishing</a></li>
-            <li><a href="#data-storage">Data Storage</a></li>
-            <li><a href="#security">Security Considerations</a></li>
-            <li><a href="#troubleshooting">Troubleshooting</a></li>
-            <li><a href="#dependencies">Dependencies</a></li>
-            <li><a href="#license">License</a></li>
-        </ol>
-    </div>
-
-    <!-- ==================== PROBLEM ==================== -->
-    <h2 id="problem"><span class="icon"></span>Problem It Solves</h2>
-
-    <div class="card problem-card">
-        <h4>The Challenge</h4>
-        <p>Teams and communities using Telegram groups face several pain points when trying to leverage AI:</p>
-        <ul>
-            <li><strong>Fragmented tools</strong> — Needing separate bots or apps for AI chat, file analysis, image recognition, and content publishing.</li>
-            <li><strong>Single-model lock-in</strong> — Most AI bots only support one model, limiting flexibility for different tasks (reasoning vs. coding vs. vision).</li>
-            <li><strong>No group-level control</strong> — Anyone can spam the bot in groups with no authorization mechanism.</li>
-            <li><strong>Context loss</strong> — Bots forget previous messages, requiring users to repeat context every time.</li>
-            <li><strong>File analysis friction</strong> — Having to copy-paste file contents manually instead of just sending the file.</li>
-            <li><strong>Long responses break</strong> — AI responses with code blocks or long text get mangled by Telegram's formatting limits.</li>
-        </ul>
-    </div>
-
-    <div class="card solution-card">
-        <h4>The Solution</h4>
-        <p>Yasir Bot addresses all of these with a single, unified Telegram bot:</p>
-        <ul>
-            <li><strong>6 AI models</strong> in one bot — switch per group based on the task at hand.</li>
-            <li><strong>Group authorization</strong> — only the bot owner can activate/deactivate the bot in groups.</li>
-            <li><strong>Persistent conversation history</strong> — per-user memory across messages with configurable depth.</li>
-            <li><strong>Universal file reader</strong> — send any supported file directly to the bot and get AI-powered analysis.</li>
-            <li><strong>Vision support</strong> — send images with questions and get intelligent descriptions using vision-capable models.</li>
-            <li><strong>Telegraph integration</strong> — publish AI responses, text, or images directly to Telegraph pages.</li>
-            <li><strong>Smart MarkdownV2 formatting</strong> — responses are properly formatted for Telegram with code blocks, bold, italic, and more.</li>
-            <li><strong>Auto file generation</strong> — the AI can create files (code, documents, PDFs) and send them back to the user.</li>
-        </ul>
-    </div>
-
-    <!-- ==================== FEATURES ==================== -->
-    <h2 id="features"><span class="icon"></span>Features</h2>
-
-    <div class="card-grid">
-        <div class="card">
-            <h4>Multi-Model AI Chat</h4>
-            <p>Choose from 6 different AI models per group. Each model excels at different tasks — reasoning, coding, general chat, or multimodal analysis.</p>
-        </div>
-        <div class="card">
-            <h4>Group Authorization</h4>
-            <p>Owner-controlled access. Only the bot owner can authorize which groups can use the bot. Unauthorized groups are completely ignored.</p>
-        </div>
-        <div class="card">
-            <h4>File Reading & Analysis</h4>
-            <p>Send files directly to the bot. Supports 50+ file types including PDF, DOCX, XLSX, code files, and ZIP/TAR archives.</p>
-        </div>
-        <div class="card">
-            <h4>Image Analysis</h4>
-            <p>Send photos with /q and get AI-powered descriptions using vision-capable models (Nemotron, Phi-4).</p>
-        </div>
-        <div class="card">
-            <h4>Conversation Memory</h4>
-            <p>Per-user conversation history (up to 20 messages). The bot remembers context across messages for natural dialogue.</p>
-        </div>
-        <div class="card">
-            <h4>Telegraph Publishing</h4>
-            <p>Publish text, code, or images to Telegraph with a single command. Supports image positioning (above/below text).</p>
-        </div>
-        <div class="card">
-            <h4>File Generation</h4>
-            <p>The AI can create files in its response using a structured format. The bot extracts them and sends as downloadable attachments.</p>
-        </div>
-        <div class="card">
-            <h4>Smart Formatting</h4>
-            <p>AI responses are automatically converted to Telegram MarkdownV2 with proper escaping, code blocks, bold, italic, and links.</p>
-        </div>
-    </div>
-
-    <!-- ==================== ARCHITECTURE ==================== -->
-    <h2 id="architecture"><span class="icon"></span>Architecture Overview</h2>
-
-    <div class="arch-diagram">
+```
  +------------------+       +------------------+       +------------------+
  |                  |       |                  |       |                  |
  |  Telegram User   |------>|  Telegram API    |------>|  Yasir Bot       |
@@ -462,671 +93,432 @@
                                   |  (6 AI Models)  |  |  (Publishing)   |  |  (Persistence)  |
                                   |                 |  |                 |  |                 |
                                   +-----------------+  +-----------------+  +-----------------+
-    </div>
+```
 
-    <h3>Component Breakdown</h3>
-    <table>
-        <tr>
-            <th>Component</th>
-            <th>Technology</th>
-            <th>Purpose</th>
-        </tr>
-        <tr>
-            <td>Bot Framework</td>
-            <td>aiogram 3.x</td>
-            <td>Async Telegram bot framework handling commands, messages, callbacks</td>
-        </tr>
-        <tr>
-            <td>AI Backend</td>
-            <td>NVIDIA NIM API</td>
-            <td>Hosts and serves 6 different LLM models via unified API</td>
-        </tr>
-        <tr>
-            <td>HTTP Client</td>
-            <td>httpx</td>
-            <td>Async HTTP requests to AI API and Telegraph</td>
-        </tr>
-        <tr>
-            <td>Data Storage</td>
-            <td>JSON file</td>
-            <td>Persistent storage for groups, settings, conversations</td>
-        </tr>
-        <tr>
-            <td>Publishing</td>
-            <td>Telegraph API</td>
-            <td>Publish long-form content with images to Telegraph</td>
-        </tr>
-        <tr>
-            <td>PDF Processing</td>
-            <td>PyPDF2 / fpdf2</td>
-            <td>Read PDF files and generate PDF output</td>
-        </tr>
-        <tr>
-            <td>Doc Processing</td>
-            <td>python-docx</td>
-            <td>Read Microsoft Word documents</td>
-        </tr>
-        <tr>
-            <td>Spreadsheet</td>
-            <td>openpyxl</td>
-            <td>Read Excel spreadsheets</td>
-        </tr>
-    </table>
+### Component Breakdown
 
-    <!-- ==================== MODELS ==================== -->
-    <h2 id="models"><span class="icon"></span>Supported AI Models</h2>
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Bot Framework | aiogram 3.x | Async Telegram bot framework handling commands, messages, callbacks |
+| AI Backend | NVIDIA NIM API | Hosts and serves 6 different LLM models via unified API |
+| HTTP Client | httpx | Async HTTP requests to AI API and Telegraph |
+| Data Storage | JSON file | Persistent storage for groups, settings, conversations |
+| Publishing | Telegraph API | Publish long-form content with images to Telegraph |
+| PDF Processing | PyPDF2 / fpdf2 | Read PDF files and generate PDF output |
+| Doc Processing | python-docx | Read Microsoft Word documents |
+| Spreadsheet | openpyxl | Read Excel spreadsheets |
 
-    <p>All models are accessed through NVIDIA's unified API. Each group can independently select which model to use.</p>
+---
 
-    <div class="model-card">
-        <div class="model-name">Nemotron 3 Nano</div>
-        <div class="model-id">nvidia/nemotron-3-nano-omni-30b-a3b-reasoning</div>
-        <span class="model-badge vision-badge">Vision</span>
-    </div>
-    <div class="model-card">
-        <div class="model-name">DeepSeek V4 Flash</div>
-        <div class="model-id">deepseek-ai/deepseek-v4-flash</div>
-        <span class="model-badge text-badge">Text</span>
-    </div>
-    <div class="model-card">
-        <div class="model-name">Mistral Large 675B</div>
-        <div class="model-id">mistralai/mistral-large-3-675b-instruct-2512</div>
-        <span class="model-badge text-badge">Text</span>
-    </div>
-    <div class="model-card">
-        <div class="model-name">Llama 3.3 70B</div>
-        <div class="model-id">meta/llama-3.3-70b-instruct</div>
-        <span class="model-badge text-badge">Text</span>
-    </div>
-    <div class="model-card">
-        <div class="model-name">Qwen3 Coder 480B</div>
-        <div class="model-id">qwen/qwen3-coder-480b-a35b-instruct</div>
-        <span class="model-badge text-badge">Text</span>
-    </div>
-    <div class="model-card">
-        <div class="model-name">Phi-4 Multimodal</div>
-        <div class="model-id">microsoft/phi-4-multimodal-instruct</div>
-        <span class="model-badge vision-badge">Vision</span>
-    </div>
+## Supported AI Models
 
-    <div class="callout callout-info">
-        <strong>Vision Models</strong> — Nemotron and Phi-4 support image analysis. When an image is sent, the bot automatically selects a vision-capable model regardless of the group's configured model.
-    </div>
+All models are accessed through NVIDIA's unified API. Each group can independently select which model to use.
 
-    <!-- ==================== PREREQUISITES ==================== -->
-    <h2 id="prerequisites"><span class="icon"></span>Prerequisites</h2>
+| Model | ID | Capabilities |
+|-------|-----|-------------|
+| **Nemotron 3 Nano** | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Vision + Text |
+| **DeepSeek V4 Flash** | `deepseek-ai/deepseek-v4-flash` | Text |
+| **Mistral Large 675B** | `mistralai/mistral-large-3-675b-instruct-2512` | Text |
+| **Llama 3.3 70B** | `meta/llama-3.3-70b-instruct` | Text |
+| **Qwen3 Coder 480B** | `qwen/qwen3-coder-480b-a35b-instruct` | Text |
+| **Phi-4 Multimodal** | `microsoft/phi-4-multimodal-instruct` | Vision + Text |
 
-    <ul>
-        <li><strong>Python 3.10 or higher</strong> (tested on 3.14)</li>
-        <li><strong>A Telegram Bot Token</strong> — obtained from <a href="https://t.me/BotFather" target="_blank">@BotFather</a></li>
-        <li><strong>NVIDIA API Key</strong> — obtained from <a href="https://build.nvidia.com/" target="_blank">NVIDIA NIM</a></li>
-        <li><strong>Your Telegram User ID</strong> — get it from <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a></li>
-        <li><strong>A Telegram Channel</strong> (optional) — for image hosting via /post command</li>
-    </ul>
+> **Note:** Vision models (Nemotron and Phi-4) support image analysis. When an image is sent, the bot automatically selects a vision-capable model regardless of the group's configured model.
 
-    <!-- ==================== SETUP ==================== -->
-    <h2 id="setup"><span class="icon"></span>Step-by-Step Setup</h2>
+---
 
-    <h3>1. Create Your Telegram Bot</h3>
-    <ol class="steps">
-        <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank">@BotFather</a>.</li>
-        <li>Send <code>/newbot</code> and follow the prompts to name your bot.</li>
-        <li>Copy the <strong>bot token</strong> provided by BotFather (format: <code>123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11</code>).</li>
-        <li>Optionally set commands via <code>/setcommands</code> in BotFather.</li>
-    </ol>
+## Prerequisites
 
-    <h3>2. Get Your NVIDIA API Key</h3>
-    <ol class="steps">
-        <li>Go to <a href="https://build.nvidia.com/" target="_blank">NVIDIA NIM</a> and create an account.</li>
-        <li>Navigate to the API keys section and generate a new key.</li>
-        <li>Copy the key (format: <code>nvapi-xxxxxxxxxxxxxxxxxxxx</code>).</li>
-    </ol>
+- **Python 3.10 or higher** (tested on 3.14)
+- **A Telegram Bot Token** — obtained from [@BotFather](https://t.me/BotFather)
+- **NVIDIA API Key** — obtained from [NVIDIA NIM](https://build.nvidia.com/)
+- **Your Telegram User ID** — get it from [@userinfobot](https://t.me/userinfobot)
+- **A Telegram Channel** (optional) — for image hosting via `/post` command
 
-    <h3>3. Get Your Telegram User ID</h3>
-    <ol class="steps">
-        <li>Open Telegram and search for <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>.</li>
-        <li>Send any message to it.</li>
-        <li>It will reply with your numeric User ID (e.g., <code>5360075159</code>).</li>
-    </ol>
+---
 
-    <h3>4. Install Python Dependencies</h3>
-    <pre><code><span class="comment"># Clone or download the bot files</span>
-<span class="cmd">mkdir</span> yasir-bot && <span class="cmd">cd</span> yasir-bot
+## Step-by-Step Setup
 
-<span class="comment"># Create a virtual environment (recommended)</span>
-<span class="cmd">python</span> <span class="flag">-m</span> venv venv
-<span class="cmd">venv\Scripts\activate</span>        <span class="comment"># Windows</span>
-<span class="cmd">source</span> venv/bin/activate       <span class="comment"># Linux/Mac</span>
+### 1. Create Your Telegram Bot
 
-<span class="comment"># Install required packages</span>
-<span class="cmd">pip</span> install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl</code></pre>
+1. Open Telegram and search for [@BotFather](https://t.me/BotFather).
+2. Send `/newbot` and follow the prompts to name your bot.
+3. Copy the **bot token** provided by BotFather (format: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
+4. Optionally set commands via `/setcommands` in BotFather.
 
-    <h3>5. Configure the Bot</h3>
-    <p>Open <code>yasir.py</code> and update the following values at the top of the file:</p>
-    <pre><code><span class="comment"># Replace these with your actual values</span>
-BOT_TOKEN = <span class="string">"YOUR_BOT_TOKEN_FROM_BOTFATHER"</span>
-OWNER_ID = <span class="string">123456789</span>  <span class="comment"># Your Telegram numeric user ID</span>
+### 2. Get Your NVIDIA API Key
 
-<span class="comment"># Replace the API key in each model entry</span>
-<span class="string">"api_key"</span>: <span class="string">"nvapi-YOUR_NVIDIA_API_KEY"</span></code></pre>
+1. Go to [NVIDIA NIM](https://build.nvidia.com/) and create an account.
+2. Navigate to the API keys section and generate a new key.
+3. Copy the key (format: `nvapi-xxxxxxxxxxxxxxxxxxxx`).
 
-    <div class="callout callout-warning">
-        <strong>Security Warning</strong> — Never commit your bot token or API keys to a public repository. Use environment variables or a <code>.env</code> file in production.
-    </div>
+### 3. Get Your Telegram User ID
 
-    <h3>6. Set Up Image Channel (Optional)</h3>
-    <p>For the <code>/post</code> command to publish images to Telegraph:</p>
-    <ol class="steps">
-        <li>Create a new Telegram channel (can be private).</li>
-        <li>Add your bot as an <strong>administrator</strong> with post permissions.</li>
-        <li>Forward a message from the channel to <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get the channel ID.</li>
-        <li>Send <code>/setchannel -100XXXXXXXXXX</code> to your bot in private chat.</li>
-    </ol>
+1. Open Telegram and search for [@userinfobot](https://t.me/userinfobot).
+2. Send any message to it.
+3. It will reply with your numeric User ID (e.g., `5360075159`).
 
-    <h3>7. Run the Bot</h3>
-    <pre><code><span class="cmd">python</span> yasir.py</code></pre>
-    <p>You should see output like:</p>
-    <pre><code>2026-05-29 10:00:00 [INFO] yasir-bot: Bot started: @YourBotName (id=123456789)
+### 4. Install Python Dependencies
+
+```bash
+# Clone or download the bot files
+mkdir yasir-bot && cd yasir-bot
+
+# Create a virtual environment (recommended)
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate       # Linux/Mac
+
+# Install required packages
+pip install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl
+```
+
+### 5. Configure the Bot
+
+Open `yasir.py` and update the following values at the top of the file:
+
+```python
+# Replace these with your actual values
+BOT_TOKEN = "YOUR_BOT_TOKEN_FROM_BOTFATHER"
+OWNER_ID = 123456789  # Your Telegram numeric user ID
+
+# Replace the API key in each model entry
+"api_key": "nvapi-YOUR_NVIDIA_API_KEY"
+```
+
+> ⚠️ **Security Warning** — Never commit your bot token or API keys to a public repository. Use environment variables or a `.env` file in production.
+
+### 6. Set Up Image Channel (Optional)
+
+For the `/post` command to publish images to Telegraph:
+
+1. Create a new Telegram channel (can be private).
+2. Add your bot as an **administrator** with post permissions.
+3. Forward a message from the channel to [@userinfobot](https://t.me/userinfobot) to get the channel ID.
+4. Send `/setchannel -100XXXXXXXXXX` to your bot in private chat.
+
+### 7. Run the Bot
+
+```bash
+python yasir.py
+```
+
+You should see output like:
+
+```
+2026-05-29 10:00:00 [INFO] yasir-bot: Bot started: @YourBotName (id=123456789)
 2026-05-29 10:00:00 [INFO] yasir-bot: Owner ID: 5360075159
 2026-05-29 10:00:00 [INFO] yasir-bot: Authorized groups: 0
 2026-05-29 10:00:00 [INFO] yasir-bot: Image channel: Not set
-2026-05-29 10:00:00 [INFO] yasir-bot: Bot is running!</code></pre>
+2026-05-29 10:00:00 [INFO] yasir-bot: Bot is running!
+```
 
-    <!-- ==================== CONFIGURATION ==================== -->
-    <h2 id="configuration"><span class="icon"></span>Configuration</h2>
+---
 
-    <p>All configuration is done at the top of <code>yasir.py</code>:</p>
+## Configuration
 
-    <table>
-        <tr>
-            <th>Variable</th>
-            <th>Default</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td><code>BOT_TOKEN</code></td>
-            <td>—</td>
-            <td>Your Telegram bot token from @BotFather</td>
-        </tr>
-        <tr>
-            <td><code>OWNER_ID</code></td>
-            <td>—</td>
-            <td>Your Telegram numeric user ID (admin of the bot)</td>
-        </tr>
-        <tr>
-            <td><code>NVIDIA_API_URL</code></td>
-            <td><code>https://integrate.api.nvidia.com/v1/chat/completions</code></td>
-            <td>NVIDIA NIM API endpoint</td>
-        </tr>
-        <tr>
-            <td><code>PROXY_URL</code></td>
-            <td><code>""</code></td>
-            <td>HTTP proxy URL for API calls (leave empty if not needed)</td>
-        </tr>
-        <tr>
-            <td><code>DEFAULT_MODEL</code></td>
-            <td><code>"nemotron"</code></td>
-            <td>Default AI model for new groups and private chats</td>
-        </tr>
-        <tr>
-            <td><code>MAX_HISTORY</code></td>
-            <td><code>20</code></td>
-            <td>Maximum conversation history messages per user</td>
-        </tr>
-        <tr>
-            <td><code>DATA_FILE</code></td>
-            <td><code>data.json</code></td>
-            <td>Path to the persistent data file (auto-created)</td>
-        </tr>
-        <tr>
-            <td><code>IMAGE_CHANNEL_ID</code></td>
-            <td>—</td>
-            <td>Telegram channel ID for image hosting (set via <code>/setchannel</code>)</td>
-        </tr>
-    </table>
+All configuration is done at the top of `yasir.py`:
 
-    <h3>Adding or Modifying Models</h3>
-    <p>Edit the <code>MODELS</code> dictionary to add new models or change existing ones:</p>
-    <pre><code>MODELS = {
-    <span class="string">"mymodel"</span>: {
-        <span class="string">"name"</span>: <span class="string">"Display Name"</span>,        <span class="comment"># Shown in /settings keyboard</span>
-        <span class="string">"model"</span>: <span class="string">"provider/model-id"</span>,  <span class="comment"># NVIDIA model identifier</span>
-        <span class="string">"api_key"</span>: <span class="string">"nvapi-xxxxx"</span>,       <span class="comment"># API key for this model</span>
-        <span class="string">"vision"</span>: <span class="keyword">False</span>,               <span class="comment"># True if model supports images</span>
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BOT_TOKEN` | — | Your Telegram bot token from @BotFather |
+| `OWNER_ID` | — | Your Telegram numeric user ID (admin of the bot) |
+| `NVIDIA_API_URL` | `https://integrate.api.nvidia.com/v1/chat/completions` | NVIDIA NIM API endpoint |
+| `PROXY_URL` | `""` | HTTP proxy URL for API calls (leave empty if not needed) |
+| `DEFAULT_MODEL` | `"nemotron"` | Default AI model for new groups and private chats |
+| `MAX_HISTORY` | `20` | Maximum conversation history messages per user |
+| `DATA_FILE` | `data.json` | Path to the persistent data file (auto-created) |
+| `IMAGE_CHANNEL_ID` | — | Telegram channel ID for image hosting (set via `/setchannel`) |
+
+### Adding or Modifying Models
+
+Edit the `MODELS` dictionary to add new models or change existing ones:
+
+```python
+MODELS = {
+    "mymodel": {
+        "name": "Display Name",        # Shown in /settings keyboard
+        "model": "provider/model-id",  # NVIDIA model identifier
+        "api_key": "nvapi-xxxxx",       # API key for this model
+        "vision": False,               # True if model supports images
     },
-}</code></pre>
+}
+```
 
-    <!-- ==================== COMMANDS ==================== -->
-    <h2 id="commands"><span class="icon"></span>Bot Commands Reference</h2>
+---
 
-    <h3>User Commands (Everyone)</h3>
-    <table>
-        <tr>
-            <th>Command</th>
-            <th>Where</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td><code>/start</code></td>
-            <td>Private / Group</td>
-            <td>Welcome message with basic instructions</td>
-        </tr>
-        <tr>
-            <td><code>/q &lt;question&gt;</code></td>
-            <td>Private / Group</td>
-            <td>Ask the AI a question. Supports replying to messages, files, and photos.</td>
-        </tr>
-        <tr>
-            <td><code>/question &lt;text&gt;</code></td>
-            <td>Private / Group</td>
-            <td>Alias for <code>/q</code></td>
-        </tr>
-        <tr>
-            <td><code>/post</code></td>
-            <td>Private / Group</td>
-            <td>Publish text or images to Telegraph. Reply to a message or provide text as argument.</td>
-        </tr>
-        <tr>
-            <td><code>/clearhistory</code></td>
-            <td>Private / Group</td>
-            <td>Clear your personal conversation history</td>
-        </tr>
-        <tr>
-            <td><code>/model</code></td>
-            <td>Group</td>
-            <td>Show the current AI model for this group</td>
-        </tr>
-        <tr>
-            <td><code>/help</code></td>
-            <td>Private / Group</td>
-            <td>Show the full help message with all commands</td>
-        </tr>
-    </table>
+## Bot Commands Reference
 
-    <h3>Owner Commands (Bot Admin Only)</h3>
-    <table>
-        <tr>
-            <th>Command</th>
-            <th>Where</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td><code>/authorize</code></td>
-            <td>Group</td>
-            <td>Activate the bot in the current group</td>
-        </tr>
-        <tr>
-            <td><code>/deauthorize</code></td>
-            <td>Group</td>
-            <td>Deactivate the bot in the current group</td>
-        </tr>
-        <tr>
-            <td><code>/unauthorize</code></td>
-            <td>Group</td>
-            <td>Alias for <code>/deauthorize</code></td>
-        </tr>
-        <tr>
-            <td><code>/settings</code></td>
-            <td>Group</td>
-            <td>Open the AI model selection keyboard</td>
-        </tr>
-        <tr>
-            <td><code>/setchannel &lt;ID&gt;</code></td>
-            <td>Private</td>
-            <td>Set the Telegram channel for image hosting</td>
-        </tr>
-        <tr>
-            <td><code>/clearallhistory</code></td>
-            <td>Private / Group</td>
-            <td>Clear conversation history for ALL users</td>
-        </tr>
-    </table>
+### User Commands (Everyone)
 
-    <!-- ==================== USAGE ==================== -->
-    <h2 id="usage"><span class="icon"></span>Usage Guide</h2>
+| Command | Where | Description |
+|---------|-------|-------------|
+| `/start` | Private / Group | Welcome message with basic instructions |
+| `/q <question>` | Private / Group | Ask the AI a question. Supports replying to messages, files, and photos. |
+| `/question <text>` | Private / Group | Alias for `/q` |
+| `/post` | Private / Group | Publish text or images to Telegraph. Reply to a message or provide text as argument. |
+| `/clearhistory` | Private / Group | Clear your personal conversation history |
+| `/model` | Group | Show the current AI model for this group |
+| `/help` | Private / Group | Show the full help message with all commands |
 
-    <h3>Private Chat (Owner)</h3>
-    <p>The bot owner can chat directly with the bot in DM without any commands. Just send a message and the AI responds.</p>
+### Owner Commands (Bot Admin Only)
 
-    <h3>Private Chat (Other Users)</h3>
-    <p>Other users must use <code>/q</code> followed by their question:</p>
-    <pre><code>/q What is the capital of France?</code></pre>
+| Command | Where | Description |
+|---------|-------|-------------|
+| `/authorize` | Group | Activate the bot in the current group |
+| `/deauthorize` | Group | Deactivate the bot in the current group |
+| `/unauthorize` | Group | Alias for `/deauthorize` |
+| `/settings` | Group | Open the AI model selection keyboard |
+| `/setchannel <ID>` | Private | Set the Telegram channel for image hosting |
+| `/clearallhistory` | Private / Group | Clear conversation history for ALL users |
 
-    <h3>Group Chat</h3>
-    <p>The bot responds in groups only when:</p>
-    <ul>
-        <li>You <strong>@mention</strong> the bot: <code>@YourBotName what is Python?</code></li>
-        <li>You <strong>reply</strong> to one of the bot's messages</li>
-    </ul>
-    <p>Regular messages are ignored to avoid spam.</p>
+---
 
-    <h3>Asking About Files</h3>
-    <pre><code><span class="comment"># Send a file and reply to it with:</span>
+## Usage Guide
+
+### Private Chat (Owner)
+
+The bot owner can chat directly with the bot in DM without any commands. Just send a message and the AI responds.
+
+### Private Chat (Other Users)
+
+Other users must use `/q` followed by their question:
+
+```
+/q What is the capital of France?
+```
+
+### Group Chat
+
+The bot responds in groups only when:
+
+- You **@mention** the bot: `@YourBotName what is Python?`
+- You **reply** to one of the bot's messages
+
+Regular messages are ignored to avoid spam.
+
+### Asking About Files
+
+```bash
+# Send a file and reply to it with:
 /q Summarize this document
 
-<span class="comment"># Or send a file with a caption starting with /q:</span>
-/q Explain this code line by line</code></pre>
+# Or send a file with a caption starting with /q:
+/q Explain this code line by line
+```
 
-    <h3>Asking About Images</h3>
-    <pre><code><span class="comment"># Reply to a photo with:</span>
+### Asking About Images
+
+```bash
+# Reply to a photo with:
 /q What do you see in this image?
 
-<span class="comment"># Send a photo with caption:</span>
-/q Describe the objects in this photo</code></pre>
+# Send a photo with caption:
+/q Describe the objects in this photo
+```
 
-    <h3>Replying to Messages</h3>
-    <pre><code><span class="comment"># Reply to any message with /q to ask about it:</span>
-/q Can you explain this in simpler terms?</code></pre>
+### Replying to Messages
 
-    <!-- ==================== FILE READING ==================== -->
-    <h2 id="file-reading"><span class="icon"></span>File Reading Capabilities</h2>
+```bash
+# Reply to any message with /q to ask about it:
+/q Can you explain this in simpler terms?
+```
 
-    <p>The bot can read and analyze a wide variety of file types. Send the file directly to the bot (or reply to it with <code>/q</code>).</p>
+---
 
-    <h3>Text & Code Files</h3>
-    <table>
-        <tr>
-            <th>Category</th>
-            <th>Extensions</th>
-        </tr>
-        <tr>
-            <td>Programming Languages</td>
-            <td><code>.py .js .ts .jsx .tsx .java .kt .swift .c .cpp .h .cs .go .rs .rb .php .dart .scala .lua .r .ex .exs .hs</code></td>
-        </tr>
-        <tr>
-            <td>Web Technologies</td>
-            <td><code>.html .htm .css .scss .sass .less .vue .svelte .astro</code></td>
-        </tr>
-        <tr>
-            <td>Data & Config</td>
-            <td><code>.json .xml .yaml .yml .toml .ini .cfg .conf .env .properties</code></td>
-        </tr>
-        <tr>
-            <td>Documentation</td>
-            <td><code>.txt .md .markdown .rst .tex .log .csv .tsv .sql</code></td>
-        </tr>
-        <tr>
-            <td>Shell & Scripts</td>
-            <td><code>.sh .bash .zsh .bat .cmd .ps1 .psm1</code></td>
-        </tr>
-        <tr>
-            <td>Infrastructure</td>
-            <td><code>.dockerfile .makefile .cmake .gradle .gitignore .dockerignore .htaccess .nginx .apache</code></td>
-        </tr>
-    </table>
+## File Reading Capabilities
 
-    <h3>Binary Documents</h3>
-    <table>
-        <tr>
-            <th>Format</th>
-            <th>Extensions</th>
-            <th>Notes</th>
-        </tr>
-        <tr>
-            <td>PDF</td>
-            <td><code>.pdf</code></td>
-            <td>Text extracted using PyPDF2</td>
-        </tr>
-        <tr>
-            <td>Word</td>
-            <td><code>.docx .doc</code></td>
-            <td>Requires <code>python-docx</code></td>
-        </tr>
-        <tr>
-            <td>Excel</td>
-            <td><code>.xlsx .xls</code></td>
-            <td>Requires <code>openpyxl</code></td>
-        </tr>
-    </table>
+The bot can read and analyze a wide variety of file types. Send the file directly to the bot (or reply to it with `/q`).
 
-    <h3>Archives</h3>
-    <table>
-        <tr>
-            <th>Format</th>
-            <th>Extensions</th>
-            <th>Notes</th>
-        </tr>
-        <tr>
-            <td>ZIP</td>
-            <td><code>.zip</code></td>
-            <td>Lists contents + reads embedded text files</td>
-        </tr>
-        <tr>
-            <td>TAR</td>
-            <td><code>.tar .gz .tgz .bz2 .xz</code></td>
-            <td>Lists contents + reads embedded text files</td>
-        </tr>
-    </table>
+### Text & Code Files
 
-    <div class="callout callout-info">
-        <strong>File Size Limit</strong> — Maximum file size is <strong>20 MB</strong>. Archive reading is limited to 50 file listings and 20 text file contents. Content is truncated at 12,000 characters.
-    </div>
+| Category | Extensions |
+|----------|------------|
+| Programming Languages | `.py` `.js` `.ts` `.jsx` `.tsx` `.java` `.kt` `.swift` `.c` `.cpp` `.h` `.cs` `.go` `.rs` `.rb` `.php` `.dart` `.scala` `.lua` `.r` `.ex` `.exs` `.hs` |
+| Web Technologies | `.html` `.htm` `.css` `.scss` `.sass` `.less` `.vue` `.svelte` `.astro` |
+| Data & Config | `.json` `.xml` `.yaml` `.yml` `.toml` `.ini` `.cfg` `.conf` `.env` `.properties` |
+| Documentation | `.txt` `.md` `.markdown` `.rst` `.tex` `.log` `.csv` `.tsv` `.sql` |
+| Shell & Scripts | `.sh` `.bash` `.zsh` `.bat` `.cmd` `.ps1` `.psm1` |
+| Infrastructure | `.dockerfile` `.makefile` `.cmake` `.gradle` `.gitignore` `.dockerignore` `.htaccess` `.nginx` `.apache` |
 
-    <!-- ==================== TELEGRAPH ==================== -->
-    <h2 id="telegraph"><span class="icon"></span>Telegraph Publishing</h2>
+### Binary Documents
 
-    <p>The <code>/post</code> command publishes content to <a href="https://telegra.ph" target="_blank">Telegraph</a> — a lightweight blogging platform by Telegram.</p>
+| Format | Extensions | Notes |
+|--------|------------|-------|
+| PDF | `.pdf` | Text extracted using PyPDF2 |
+| Word | `.docx` `.doc` | Requires `python-docx` |
+| Excel | `.xlsx` `.xls` | Requires `openpyxl` |
 
-    <h3>Usage Examples</h3>
-    <pre><code><span class="comment"># Publish text directly</span>
+### Archives
+
+| Format | Extensions | Notes |
+|--------|------------|-------|
+| ZIP | `.zip` | Lists contents + reads embedded text files |
+| TAR | `.tar` `.gz` `.tgz` `.bz2` `.xz` | Lists contents + reads embedded text files |
+
+> **File Size Limit** — Maximum file size is **20 MB**. Archive reading is limited to 50 file listings and 20 text file contents. Content is truncated at 12,000 characters.
+
+---
+
+## Telegraph Publishing
+
+The `/post` command publishes content to [Telegraph](https://telegra.ph) — a lightweight blogging platform by Telegram.
+
+### Usage Examples
+
+```bash
+# Publish text directly
 /post Hello World! This is my first Telegraph post.
 
-<span class="comment"># Publish AI response: reply to any bot message with /post</span>
+# Publish AI response: reply to any bot message with /post
 
-<span class="comment"># Publish a photo with text (image appears above text by default)</span>
-<span class="comment"># Reply to a photo with /post and optional caption</span>
+# Publish a photo with text (image appears above text by default)
+# Reply to a photo with /post and optional caption
 /post Check out this image!
 
-<span class="comment"># Publish with image below text</span>
-/post --below Here is my analysis of this chart.</code></pre>
+# Publish with image below text
+/post --below Here is my analysis of this chart.
+```
 
-    <h3>Image Positioning</h3>
-    <table>
-        <tr>
-            <th>Flag</th>
-            <th>Behavior</th>
-        </tr>
-        <tr>
-            <td>(default)</td>
-            <td>Image appears <strong>above</strong> the text</td>
-        </tr>
-        <tr>
-            <td><code>--below</code></td>
-            <td>Image appears <strong>below</strong> the text</td>
-        </tr>
-    </table>
+### Image Positioning
 
-    <!-- ==================== DATA STORAGE ==================== -->
-    <h2 id="data-storage"><span class="icon"></span>Data Storage</h2>
+| Flag | Behavior |
+|------|----------|
+| (default) | Image appears **above** the text |
+| `--below` | Image appears **below** the text |
 
-    <p>The bot uses a single <code>data.json</code> file for all persistent data:</p>
+---
 
-    <pre><code>{
-  <span class="string">"owner_id"</span>: 5360075159,
-  <span class="string">"authorized_groups"</span>: {
-    <span class="string">"-1001234567890"</span>: {
-      <span class="string">"title"</span>: <span class="string">"My Group"</span>,
-      <span class="string">"authorized_at"</span>: <span class="string">"2026-05-29T10:00:00"</span>,
-      <span class="string">"authorized_by"</span>: 5360075159
+## Data Storage
+
+The bot uses a single `data.json` file for all persistent data:
+
+```json
+{
+  "owner_id": 5360075159,
+  "authorized_groups": {
+    "-1001234567890": {
+      "title": "My Group",
+      "authorized_at": "2026-05-29T10:00:00",
+      "authorized_by": 5360075159
     }
   },
-  <span class="string">"group_models"</span>: {
-    <span class="string">"-1001234567890"</span>: <span class="string">"mistral"</span>
+  "group_models": {
+    "-1001234567890": "mistral"
   },
-  <span class="string">"conversations"</span>: {
-    <span class="string">"123456789"</span>: [
-      {<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: <span class="string">"Hello"</span>},
-      {<span class="string">"role"</span>: <span class="string">"assistant"</span>, <span class="string">"content"</span>: <span class="string">"Hi! How can I help?"</span>}
+  "conversations": {
+    "123456789": [
+      {"role": "user", "content": "Hello"},
+      {"role": "assistant", "content": "Hi! How can I help?"}
     ]
   },
-  <span class="string">"telegraph_token"</span>: <span class="string">"abc123..."</span>,
-  <span class="string">"image_channel_id"</span>: -1003707695999
-}</code></pre>
+  "telegraph_token": "abc123...",
+  "image_channel_id": -1003707695999
+}
+```
 
-    <div class="callout callout-warning">
-        <strong>Backup Recommendation</strong> — Regularly back up <code>data.json</code>. It contains conversation history, group settings, and API tokens.
-    </div>
+> ⚠️ **Backup Recommendation** — Regularly back up `data.json`. It contains conversation history, group settings, and API tokens.
 
-    <!-- ==================== SECURITY ==================== -->
-    <h2 id="security"><span class="icon"></span>Security Considerations</h2>
+---
 
-    <div class="callout callout-danger">
-        <strong>Important</strong> — Review these security points before deploying.
-    </div>
+## Security Considerations
 
-    <ul>
-        <li><strong>Hardcoded credentials</strong> — The bot token and API keys are currently hardcoded in <code>yasir.py</code>. For production, use environment variables or a <code>.env</code> file with <code>python-dotenv</code>.</li>
-        <li><strong>Owner-only access</strong> — Only the user matching <code>OWNER_ID</code> can authorize groups, change models, and manage settings. Keep your User ID private.</li>
-        <li><strong>Group authorization</strong> — The bot ignores all messages in unauthorized groups. Always authorize only trusted groups.</li>
-        <li><strong>File size limits</strong> — Files are capped at 20MB to prevent abuse. Content is truncated at 12,000 characters.</li>
-        <li><strong>No rate limiting</strong> — The bot does not implement per-user rate limiting. Consider adding it for public deployments.</li>
-        <li><strong>Temporary files</strong> — Downloaded files are stored temporarily and deleted after processing. Ensure the temp directory has adequate space.</li>
-    </ul>
+> ⚠️ **Important** — Review these security points before deploying.
 
-    <h3>Recommended: Use Environment Variables</h3>
-    <pre><code><span class="comment"># .env file</span>
+- **Hardcoded credentials** — The bot token and API keys are currently hardcoded in `yasir.py`. For production, use environment variables or a `.env` file with `python-dotenv`.
+- **Owner-only access** — Only the user matching `OWNER_ID` can authorize groups, change models, and manage settings. Keep your User ID private.
+- **Group authorization** — The bot ignores all messages in unauthorized groups. Always authorize only trusted groups.
+- **File size limits** — Files are capped at 20MB to prevent abuse. Content is truncated at 12,000 characters.
+- **No rate limiting** — The bot does not implement per-user rate limiting. Consider adding it for public deployments.
+- **Temporary files** — Downloaded files are stored temporarily and deleted after processing. Ensure the temp directory has adequate space.
+
+### Recommended: Use Environment Variables
+
+```bash
+# .env file
 BOT_TOKEN=5278733059:AAG0RI7zsuCfDCq1g8xb23jdtgopoeCy_LE
 OWNER_ID=5360075159
-NVIDIA_API_KEY=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</code></pre>
+NVIDIA_API_KEY=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
+```
 
-    <pre><code><span class="comment"># In yasir.py, replace hardcoded values:</span>
-<span class="keyword">import</span> os
-<span class="keyword">from</span> dotenv <span class="keyword">import</span> load_dotenv
+```python
+# In yasir.py, replace hardcoded values:
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv(<span class="string">"BOT_TOKEN"</span>)
-OWNER_ID = int(os.getenv(<span class="string">"OWNER_ID"</span>))</code></pre>
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OWNER_ID = int(os.getenv("OWNER_ID"))
+```
 
-    <!-- ==================== TROUBLESHOOTING ==================== -->
-    <h2 id="troubleshooting"><span class="icon"></span>Troubleshooting</h2>
+---
 
-    <table>
-        <tr>
-            <th>Problem</th>
-            <th>Solution</th>
-        </tr>
-        <tr>
-            <td>Bot doesn't respond in group</td>
-            <td>Make sure you ran <code>/authorize</code> in the group as the owner. Check that the bot is a member of the group.</td>
-        </tr>
-        <tr>
-            <td>Bot doesn't respond to DMs</td>
-            <td>Only the owner can chat freely in DM. Other users must use <code>/q</code> command.</td>
-        </tr>
-        <tr>
-            <td>AI API error (401)</td>
-            <td>Your NVIDIA API key is invalid or expired. Generate a new one at <a href="https://build.nvidia.com/" target="_blank">NVIDIA NIM</a>.</td>
-        </tr>
-        <tr>
-            <td>AI API error (429)</td>
-            <td>Rate limit exceeded. Wait a few minutes and try again.</td>
-        </tr>
-        <tr>
-            <td>AI request timed out</td>
-            <td>The model is overloaded. Try switching to a different model via <code>/settings</code>.</td>
-        </tr>
-        <tr>
-            <td>Markdown formatting broken</td>
-            <td>The bot auto-escapes MarkdownV2. If responses still break, the AI may be generating incompatible formatting. The bot has a fallback to send unformatted text.</td>
-        </tr>
-        <tr>
-            <td>File not supported</td>
-            <td>Check the supported extensions list above. Files larger than 20MB are rejected.</td>
-        </tr>
-        <tr>
-            <td><code>/post</code> fails</td>
-            <td>Make sure you set the image channel via <code>/setchannel</code> and the bot is admin in that channel.</td>
-        </tr>
-        <tr>
-            <td><code>data.json</code> corrupted</td>
-            <td>Delete <code>data.json</code> and restart the bot. It will create a fresh file. You'll lose conversation history and authorized groups.</td>
-        </tr>
-        <tr>
-            <td>Missing Python packages</td>
-            <td>Run <code>pip install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl</code></td>
-        </tr>
-    </table>
+## Troubleshooting
 
-    <!-- ==================== DEPENDENCIES ==================== -->
-    <h2 id="dependencies"><span class="icon"></span>Dependencies</h2>
+| Problem | Solution |
+|---------|----------|
+| Bot doesn't respond in group | Make sure you ran `/authorize` in the group as the owner. Check that the bot is a member of the group. |
+| Bot doesn't respond to DMs | Only the owner can chat freely in DM. Other users must use `/q` command. |
+| AI API error (401) | Your NVIDIA API key is invalid or expired. Generate a new one at [NVIDIA NIM](https://build.nvidia.com/). |
+| AI API error (429) | Rate limit exceeded. Wait a few minutes and try again. |
+| AI request timed out | The model is overloaded. Try switching to a different model via `/settings`. |
+| Markdown formatting broken | The bot auto-escapes MarkdownV2. If responses still break, the AI may be generating incompatible formatting. The bot has a fallback to send unformatted text. |
+| File not supported | Check the supported extensions list above. Files larger than 20MB are rejected. |
+| `/post` fails | Make sure you set the image channel via `/setchannel` and the bot is admin in that channel. |
+| `data.json` corrupted | Delete `data.json` and restart the bot. It will create a fresh file. You'll lose conversation history and authorized groups. |
+| Missing Python packages | Run `pip install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl` |
 
-    <table>
-        <tr>
-            <th>Package</th>
-            <th>Version</th>
-            <th>Purpose</th>
-            <th>Required</th>
-        </tr>
-        <tr>
-            <td><code>aiogram</code></td>
-            <td>3.x</td>
-            <td>Telegram bot framework</td>
-            <td>Yes</td>
-        </tr>
-        <tr>
-            <td><code>httpx</code></td>
-            <td>latest</td>
-            <td>Async HTTP client for API calls</td>
-            <td>Yes</td>
-        </tr>
-        <tr>
-            <td><code>PyPDF2</code></td>
-            <td>latest</td>
-            <td>Read PDF files</td>
-            <td>Yes</td>
-        </tr>
-        <tr>
-            <td><code>fpdf2</code></td>
-            <td>latest</td>
-            <td>Generate PDF files from AI responses</td>
-            <td>Yes</td>
-        </tr>
-        <tr>
-            <td><code>python-docx</code></td>
-            <td>latest</td>
-            <td>Read Word documents (.docx)</td>
-            <td>Optional</td>
-        </tr>
-        <tr>
-            <td><code>openpyxl</code></td>
-            <td>latest</td>
-            <td>Read Excel spreadsheets (.xlsx)</td>
-            <td>Optional</td>
-        </tr>
-        <tr>
-            <td><code>python-dotenv</code></td>
-            <td>latest</td>
-            <td>Load .env files (recommended for production)</td>
-            <td>Optional</td>
-        </tr>
-    </table>
+---
 
-    <pre><code><span class="comment"># Quick install all</span>
-<span class="cmd">pip</span> install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl python-dotenv
+## Dependencies
 
-<span class="comment"># Minimal install (no Excel/Word support)</span>
-<span class="cmd">pip</span> install aiogram httpx PyPDF2 fpdf2</code></pre>
+| Package | Version | Purpose | Required |
+|---------|---------|---------|----------|
+| `aiogram` | 3.x | Telegram bot framework | Yes |
+| `httpx` | latest | Async HTTP client for API calls | Yes |
+| `PyPDF2` | latest | Read PDF files | Yes |
+| `fpdf2` | latest | Generate PDF files from AI responses | Yes |
+| `python-docx` | latest | Read Word documents (.docx) | Optional |
+| `openpyxl` | latest | Read Excel spreadsheets (.xlsx) | Optional |
+| `python-dotenv` | latest | Load .env files (recommended for production) | Optional |
 
-    <!-- ==================== PROJECT STRUCTURE ==================== -->
-    <h2><span class="icon"></span>Project Structure</h2>
+```bash
+# Quick install all
+pip install aiogram httpx PyPDF2 fpdf2 python-docx openpyxl python-dotenv
 
-    <pre><code>yasir-bot/
-|-- yasir.py              <span class="comment"># Main bot file (all logic)</span>
-|-- data.json             <span class="comment"># Auto-generated persistent data</span>
-|-- .env                  <span class="comment"># Optional: environment variables</span>
-|-- requirements.txt      <span class="comment"># Python dependencies</span>
-|-- README.html           <span class="comment"># This documentation</span>
-|-- venv/                 <span class="comment"># Python virtual environment (optional)</span></code></pre>
+# Minimal install (no Excel/Word support)
+pip install aiogram httpx PyPDF2 fpdf2
+```
 
-    <h3>Generating requirements.txt</h3>
-    <pre><code><span class="cmd">pip</span> freeze > requirements.txt</code></pre>
+---
 
-    <!-- ==================== RUNNING AS A SERVICE ==================== -->
-    <h2><span class="icon"></span>Running as a Background Service</h2>
+## Project Structure
 
-    <h3>Linux (systemd)</h3>
-    <pre><code><span class="comment"># /etc/systemd/system/yasir-bot.service</span>
+```
+yasir-bot/
+├── yasir.py              # Main bot file (all logic)
+├── data.json             # Auto-generated persistent data
+├── .env                  # Optional: environment variables
+├── requirements.txt      # Python dependencies
+├── README.md             # This documentation
+└── venv/                 # Python virtual environment (optional)
+```
+
+### Generating requirements.txt
+
+```bash
+pip freeze > requirements.txt
+```
+
+---
+
+## Running as a Background Service
+
+### Linux (systemd)
+
+```ini
+# /etc/systemd/system/yasir-bot.service
 [Unit]
 Description=Yasir Telegram AI Bot
 After=network.target
@@ -1140,42 +532,43 @@ Restart=always
 RestartSec=10
 
 [Install]
-WantedBy=multi-user.target</code></pre>
+WantedBy=multi-user.target
+```
 
-    <pre><code><span class="cmd">sudo</span> systemctl enable yasir-bot
-<span class="cmd">sudo</span> systemctl start yasir-bot
-<span class="cmd">sudo</span> systemctl status yasir-bot</code></pre>
+```bash
+sudo systemctl enable yasir-bot
+sudo systemctl start yasir-bot
+sudo systemctl status yasir-bot
+```
 
-    <h3>Windows (Task Scheduler)</h3>
-    <ol>
-        <li>Open Task Scheduler</li>
-        <li>Create a new task triggered at system startup</li>
-        <li>Action: Start a program → <code>python.exe</code> with argument <code>yasir.py</code></li>
-        <li>Set "Start in" to the bot's directory</li>
-        <li>Enable "Run whether user is logged on or not"</li>
-    </ol>
+### Windows (Task Scheduler)
 
-    <h3>Screen / tmux (Quick & Dirty)</h3>
-    <pre><code><span class="comment"># Using screen</span>
-<span class="cmd">screen</span> <span class="flag">-S</span> yasir-bot
-<span class="cmd">python</span> yasir.py
-<span class="comment"># Press Ctrl+A, then D to detach</span>
+1. Open Task Scheduler
+2. Create a new task triggered at system startup
+3. Action: Start a program → `python.exe` with argument `yasir.py`
+4. Set "Start in" to the bot's directory
+5. Enable "Run whether user is logged on or not"
 
-<span class="comment"># Reattach later</span>
-<span class="cmd">screen</span> <span class="flag">-r</span> yasir-bot</code></pre>
+### Screen / tmux (Quick & Dirty)
 
-    <!-- ==================== LICENSE ==================== -->
-    <h2 id="license"><span class="icon"></span>License</h2>
+```bash
+# Using screen
+screen -S yasir-bot
+python yasir.py
+# Press Ctrl+A, then D to detach
 
-    <p>This project is provided as-is for personal use. Modify and distribute as needed. No warranty provided.</p>
+# Reattach later
+screen -r yasir-bot
+```
 
-    <!-- ==================== FOOTER ==================== -->
-    <footer>
-        <p>Yasir Bot Documentation &mdash; Built with Python, aiogram, and NVIDIA AI</p>
-        <p>Contact: <a href="https://t.me/itznik_x">@itznik_x</a></p>
-    </footer>
+---
 
-</div>
+## License
 
-</body>
-</html>
+This project is provided as-is for personal use. Modify and distribute as needed. No warranty provided.
+
+---
+
+**Yasir Bot** — Built with Python, aiogram, and NVIDIA AI
+
+Contact: [@itznik_x](https://t.me/itznik_x)
