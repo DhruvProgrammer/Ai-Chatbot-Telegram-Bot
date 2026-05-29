@@ -26,8 +26,8 @@ from aiogram.enums import ChatType, ParseMode
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-BOT_TOKEN = "5278733059:AAG0RI7zsuCfDCq1g8xb23jdtgopoeCy_LE"
-OWNER_ID = 5360075159
+BOT_TOKEN = ""  #enter your bot token
+OWNER_ID =      #enter your owner id
 
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
@@ -37,37 +37,37 @@ MODELS = {
     "nemotron": {
         "name": "Nemotron 3 Nano",
         "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": True,
     },
     "deepseek": {
         "name": "DeepSeek V4 Flash",
         "model": "deepseek-ai/deepseek-v4-flash",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": False,
     },
     "mistral": {
         "name": "Mistral Large 675B",
         "model": "mistralai/mistral-large-3-675b-instruct-2512",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": False,
     },
     "llama": {
         "name": "Llama 3.3 70B",
         "model": "meta/llama-3.3-70b-instruct",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": False,
     },
     "qwen": {
         "name": "Qwen3 Coder 480B",
         "model": "qwen/qwen3-coder-480b-a35b-instruct",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": False,
     },
     "phi": {
         "name": "Phi-4 Multimodal",
         "model": "microsoft/phi-4-multimodal-instruct",
-        "api_key": "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",
+        "api_key": "#enter your api key",
         "vision": True,
     },
 }
