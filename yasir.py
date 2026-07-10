@@ -1604,7 +1604,7 @@ def escape_html(text: str) -> str:
         .replace("&", "&")
         .replace("<", "<")
         .replace(">", ">")
-        .replace('"', """)
+        .replace('"', '"')
         .replace("'", "'"))
 
 
@@ -2294,7 +2294,7 @@ async def cmd_authorize(message: Message):
         if target.id == bot.id:
             await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
             return
-authorize_user(target.id, user_id)
+        authorize_user(target.id, user_id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
             f"User <b>{escape_html(name)}</b> (ID: <code>{target.id}</code>) has been globally authorized{_EXC}\n"
@@ -2492,13 +2492,6 @@ async def cmd_deauthorize(message: Message):
                 )
             else:
                 await message.answer(f"User <code>{user_id}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
-            return
-        except ValueError:
-            pass
-                    parse_mode=ParseMode.HTML,
-                )
-            else:
-                await message.answer(f"User <code>{str(user_id)}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
             pass
