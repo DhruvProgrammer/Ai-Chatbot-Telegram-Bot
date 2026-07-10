@@ -2443,14 +2443,13 @@ authorize_user(target.id, user_id)
 @router.message(Command("deauthorize", "unauthorize"))
 async def cmd_deauthorize(message: Message):
     if not is_owner(message.from_user.id):
-        await message.answer(f"Only the bot owner can deauthorize{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+        await message.answer(f"Only the bot owner can deauthorize{_DOT}", parse_mode=ParseMode.HTML)
         return
 
     command_parts = message.text.split() if message.text else []
     target_arg = command_parts[1] if len(command_parts) > 1 else None
     
     # Reply to a user to deauthorize them globally
-# If replying to a user to deauthorize them globally
     if message.reply_to_message and message.reply_to_message.from_user:
         target = message.reply_to_message.from_user
         if target.id == bot.id:
@@ -2459,7 +2458,7 @@ async def cmd_deauthorize(message: Message):
         deauthorize_user(target.id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
-            f"User <b>{md_escape(name)}</b> has been globally deauthorized{_DOT}",
+            f"User <b>{escape_html(name)}</b> has been globally deauthorized{_DOT}",
             parse_mode=ParseMode.HTML,
         )
         return
@@ -2483,7 +2482,14 @@ async def cmd_deauthorize(message: Message):
             user_id = int(target_arg)
             if deauthorize_user(user_id):
                 await message.answer(
-                    f"User <code>{md_escape(str(user_id))}</code> has been globally deauthorized{_DOT}",
+                    f"User <code>{user_id}</code> has been globally deauthorized{_DOT}",
+                    parse_mode=ParseMode.HTML,
+                )
+            else:
+                await message.answer(f"User <code>{user_id}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
+            return
+        except ValueError:
+            pass
                     parse_mode=ParseMode.HTML,
                 )
             else:
