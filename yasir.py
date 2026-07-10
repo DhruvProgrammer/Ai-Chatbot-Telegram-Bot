@@ -2284,7 +2284,7 @@ async def cmd_authorize(message: Message):
     user_id = message.from_user.id
     
     if not is_owner(user_id):
-        await message.answer(f"Only the bot owner can authorize{_DOT}", parse_mode=ParseMode.HTML)
+        await message.answer(f"Only the bot owner can authorize{_DOT_HTML}", parse_mode=ParseMode.HTML)
         return
     
     command_parts = message.text.split() if message.text else []
@@ -2294,7 +2294,7 @@ async def cmd_authorize(message: Message):
     if message.reply_to_message and message.reply_to_message.from_user:
         target = message.reply_to_message.from_user
         if target.id == bot.id:
-            await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
+            await message.answer(f"Cannot authorize the bot itself{_DOT_HTML}", parse_mode=ParseMode.HTML)
             return
         authorize_user(target.id, user_id)
         name = target.first_name or target.username or str(target.id)
@@ -2314,7 +2314,7 @@ async def cmd_authorize(message: Message):
                 chat = await bot.get_chat(username)
                 if chat.type == ChatType.PRIVATE:
                     if chat.id == bot.id:
-                        await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
+                        await message.answer(f"Cannot authorize the bot itself{_DOT_HTML}", parse_mode=ParseMode.HTML)
                         return
                     authorize_user(chat.id, user_id)
                     name = chat.first_name or chat.username or str(chat.id)
@@ -2324,7 +2324,7 @@ async def cmd_authorize(message: Message):
                         parse_mode=ParseMode.HTML,
                     )
                 else:
-                    await message.answer(f"Usernames only work for users, not groups/channels{_DOT}", parse_mode=ParseMode.HTML)
+                    await message.answer(f"Usernames only work for users, not groups/channels{_DOT_HTML}", parse_mode=ParseMode.HTML)
                 return
             except Exception as e:
                 await message.answer(f"Could not resolve username <code>{md_escape(username)}</code>{_DOT} {md_escape(str(e))}", parse_mode=ParseMode.HTML)
@@ -2340,7 +2340,7 @@ async def cmd_authorize(message: Message):
                     chat = await bot.get_chat(target_id)
                     if chat.type == ChatType.PRIVATE:
                         if chat.id == bot.id:
-                            await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
+                            await message.answer(f"Cannot authorize the bot itself{_DOT_HTML}", parse_mode=ParseMode.HTML)
                             return
                         authorize_user(chat.id, user_id)
                         name = chat.first_name or chat.username or str(chat.id)
@@ -2354,7 +2354,7 @@ async def cmd_authorize(message: Message):
                         if message.chat.type == ChatType.PRIVATE:
                             chat_id_str = str(target_id)
                             if chat_id_str in db["authorized_groups"]:
-                                await message.answer(f"Group is already authorized{_DOT}", parse_mode=ParseMode.HTML)
+                                await message.answer(f"Group is already authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
                                 return
                             
                             db["authorized_groups"][chat_id_str] = {
@@ -2371,7 +2371,7 @@ async def cmd_authorize(message: Message):
                                 parse_mode=ParseMode.HTML,
                             )
                         else:
-                            await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT}", parse_mode=ParseMode.HTML)
+                            await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT_HTML}", parse_mode=ParseMode.HTML)
                         return
                 except Exception:
                     # If get_chat fails, assume it's a user ID
@@ -2389,7 +2389,7 @@ await message.answer(
                     group_id = abs(target_id)
                     chat_id_str = str(group_id)
                     if chat_id_str in db["authorized_groups"]:
-                        await message.answer(f"Group is already authorized{_DOT}", parse_mode=ParseMode.HTML)
+                        await message.answer(f"Group is already authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
                         return
                     
                     db["authorized_groups"][chat_id_str] = {
@@ -2406,10 +2406,10 @@ await message.answer(
                         parse_mode=ParseMode.HTML,
                     )
                 else:
-                    await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT}", parse_mode=ParseMode.HTML)
+                    await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT_HTML}", parse_mode=ParseMode.HTML)
                 return
         
-        await message.answer(f"Invalid argument{_DOT} Use <code>/authorize @username</code> or <code>/authorize <user_id></code> or reply to user{_DOT}", parse_mode=ParseMode.HTML)
+        await message.answer(f"Invalid argument{_DOT} Use <code>/authorize @username</code> or <code>/authorize <user_id></code> or reply to user{_DOT_HTML}", parse_mode=ParseMode.HTML)
         return
     
     # In a group - authorize the group itself
@@ -2418,7 +2418,7 @@ await message.answer(
         chat_title = escape_html(message.chat.title or chat_id)
         
         if chat_id in db["authorized_groups"]:
-            await message.answer(f"Group <b>{chat_title}</b> is already authorized{_DOT}", parse_mode=ParseMode.HTML)
+            await message.answer(f"Group <b>{chat_title}</b> is already authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
             return
         
         db["authorized_groups"][chat_id] = {
@@ -2450,7 +2450,7 @@ await message.answer(
 @router.message(Command("deauthorize", "unauthorize"))
 async def cmd_deauthorize(message: Message):
     if not is_owner(message.from_user.id):
-        await message.answer(f"Only the bot owner can deauthorize{_DOT}", parse_mode=ParseMode.HTML)
+        await message.answer(f"Only the bot owner can deauthorize{_DOT_HTML}", parse_mode=ParseMode.HTML)
         return
 
     command_parts = message.text.split() if message.text else []
@@ -2460,7 +2460,7 @@ async def cmd_deauthorize(message: Message):
     if message.reply_to_message and message.reply_to_message.from_user:
         target = message.reply_to_message.from_user
         if target.id == bot.id:
-            await message.answer(f"Cannot deauthorize the bot{_DOT}", parse_mode=ParseMode.HTML)
+            await message.answer(f"Cannot deauthorize the bot{_DOT_HTML}", parse_mode=ParseMode.HTML)
             return
 deauthorize_user(target.id)
         name = target.first_name or target.username or str(target.id)
@@ -2487,13 +2487,13 @@ deauthorize_user(target.id)
         # Try user ID
         try:
             user_id = int(target_arg)
-if deauthorize_user(user_id):
-            await message.answer(
-                f"User <code>{user_id}</code> has been globally deauthorized{_EXC_HTML}",
-                parse_mode=ParseMode.HTML,
-            )
-        else:
-            await message.answer(f"User <code>{user_id}</code> was not authorized{_EXC_HTML}", parse_mode=ParseMode.HTML)
+            if deauthorize_user(user_id):
+                await message.answer(
+                    f"User <code>{user_id}</code> has been globally deauthorized{_EXC_HTML}",
+                    parse_mode=ParseMode.HTML,
+                )
+            else:
+                await message.answer(f"User <code>{user_id}</code> was not authorized{_EXC_HTML}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
             pass
@@ -2505,7 +2505,7 @@ if deauthorize_user(user_id):
             chat_id_str = str(group_id)
             
             if chat_id_str not in db["authorized_groups"]:
-                await message.answer(f"Group <code>{group_id}</code> is not authorized{_DOT}", parse_mode=ParseMode.HTML)
+                await message.answer(f"Group <code>{group_id}</code> is not authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
                 return
             
             del db["authorized_groups"][chat_id_str]
@@ -2524,7 +2524,7 @@ if deauthorize_user(user_id):
         chat_title = md_escape(message.chat.title or chat_id)
         
         if chat_id not in db["authorized_groups"]:
-            await message.answer(f"Group <b>{chat_title}</b> is not authorized{_DOT}", parse_mode=ParseMode.HTML)
+            await message.answer(f"Group <b>{chat_title}</b> is not authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
             return
         
         del db["authorized_groups"][chat_id]
