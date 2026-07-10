@@ -6,6 +6,7 @@ import asyncio
 import logging
 import tempfile
 import base64
+import html
 from datetime import datetime
 from typing import Optional
 
@@ -18,29 +19,30 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
-Message,
-CallbackQuery,
-InlineKeyboardMarkup,
-InlineKeyboardButton,
-BotCommand,
-BotCommandScopeAllPrivateChats,
-BotCommandScopeAllGroupChats,
-BotCommandScopeChat,
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    BotCommand,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeChat,
+    FSInputFile,
 )
 from aiogram.enums import ChatType, ParseMode
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-OWNER_ID = int(os.getenv("OWNER_ID", "0")) if os.getenv("OWNER_ID") else 0
+BOT_TOKEN = "5278733059:AAG0RI7zsuCfDCq1g8xb23jdtgopoeCy_LE"
+OWNER_ID = 5360075159
 
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_EMBED_URL = "https://integrate.api.nvidia.com/v1/embeddings"
-NVIDIA_API_KEY_ALT = os.getenv("NVIDIA_API_KEY_ALT", "")
+NVIDIA_API_KEY_ALT = "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"
 
 PROXY_URL = ""
 
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
+TAVILY_API_KEY = "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"
 
 MODELS = {
     "nemotron": {
@@ -146,6 +148,10 @@ DEFAULT_MODEL = "google"
 DEFAULT_VISION_MODEL = "phi"
 MAX_HISTORY = 20
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
+AGENTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_agents.json")
+AGENTS_PER_PAGE = 5
+MAX_AGENT_FILE_KB = 10
+MAX_AGENTS = 10
 
 
 class SetNameState(StatesGroup):
@@ -154,6 +160,11 @@ class SetNameState(StatesGroup):
 
 class InstructionState(StatesGroup):
     waiting_instruction = State()
+
+
+class AgentState(StatesGroup):
+    waiting_file = State()
+    waiting_rename = State()
 
 
 SYSTEM_PROMPT = """You are a helpful AI assistant. Keep responses concise.
@@ -203,10 +214,16 @@ _PLUS = "\\+"
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
+LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_logs.txt")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# Mirror all logs to a file so /log can return everything since startup.
+_log_file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
+_log_file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+logging.getLogger().addHandler(_log_file_handler)
 logger = logging.getLogger("yasir-bot")
 
 # ─── Data Persistence ────────────────────────────────────────────────────────
@@ -225,6 +242,7 @@ def get_default_data() -> dict:
         "bot_alias": None,
         "setname_enabled": True,
         "user_instructions": {},
+        "question_mode": {},
     }
 
 
@@ -261,6 +279,121 @@ INSTRUCTION_REMOVE = "instruction:remove"
 INSTRUCTION_SHOW = "instruction:show"
 
 CANCEL_AI = "cancel:ai"
+
+# ─── Agent Constants ─────────────────────────────────────────────────────────
+AGENT_LIST = "agent:list"
+AGENT_ADD = "agent:add"
+AGENT_REMOVE = "agent:remove"
+AGENT_SELECT_PREFIX = "agent:sel:"
+AGENT_TOGGLE_PREFIX = "agent:toggle:"
+AGENT_DONE = "agent:done"
+AGENT_CANCEL = "agent:cancel"
+AGENT_RENAME_DEFAULT = "agent:rename:default"
+AGENT_RENAME_CUSTOM = "agent:rename:custom"
+AGENT_PAGE_PREFIX = "agent:page:"
+AGENT_CLOSE = "agent:close"
+
+# ─── Question Mode Constants ─────────────────────────────────────────────────
+QM_ENABLE = "qm:enable:"
+QM_DISABLE = "qm:disable:"
+QM_CLOSE = "qm:close:"
+QM_ANSWER_PREFIX = "qm:ans:"
+
+# ─── Instruction Guide Constant ──────────────────────────────────────────────
+INSTR_CLOSE = "instr:close"
+
+INSTRUCTION_GUIDE = """<b>🤖 Welcome to your AI Assistant</b>
+
+This is a multi-purpose AI bot with agents, web search, translation, image understanding and more. Here's how to get started:
+
+<b>💬 Talk to the AI</b>
+• Send <code>/q your question</code> to ask anything
+• Or just reply to my message, or tag me with @
+• Use <code>/search</code> for live web answers with cited sources
+
+<b>📁 Agents — /agent</b>
+Agents are <code>.md</code> files (max 10KB) you upload to give the AI special instructions or context.
+• <b>Add Agent</b> — send a <code>.md</code> file, then name it
+• <b>Toggle</b> — tap an agent to mark it ✅ active (max 5 active). Active agents are used in your chats
+• <b>Remove Agent</b> — pick agents to delete (max 5 per delete)
+• <b>Close</b> — hide this menu
+Your agents are private — only you can see or change them.
+
+<b>❓ Question Mode — /questionmode</b>
+When ON, the bot asks clarifying questions with inline buttons for complex or building/development tasks, and avoids guessing. <i>Owner-only setting.</i>
+
+<b>⚙️ Other commands</b>
+<code>/translate</code> · <code>/safety</code> · <code>/post</code> · <code>/model</code> · <code>/instructions</code> (set your personal AI instruction) · <code>/clearhistory</code> · <code>/help</code>
+
+<b>🔒 Privacy</b>
+Everything is per-user. One user cannot view or edit another user's agents or settings."""
+
+QUESTION_MODE_INSTRUCTION = """QUESTION MODE is ON.
+Rules:
+- NEVER hallucinate. If you are unsure or lack information, say so honestly instead of guessing.
+- If the user's request is complex, ambiguous, or related to building / construction / development / coding / architecture / engineering, ask clarifying questions BEFORE giving the final answer.
+- You may ask several questions one at a time: after the user picks an answer, you can ask the next question, and so on, until you have enough to answer well.
+- When you need to ask, output ONLY this exact format and nothing else:
+[ASK] your clarifying question here [/ASK]
+[OPT] first option [/OPT]
+[OPT] second option [/OPT]
+- Use [OPT] lines only when discrete choices help the user; keep options short.
+- If no clarification is needed, just answer normally (no [ASK] tags at all)."""
+
+# ─── Agent Data Helpers ─────────────────────────────────────────────────────
+
+def load_agents() -> dict:
+    if os.path.exists(AGENTS_FILE):
+        try:
+            with open(AGENTS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            logger.warning("user_agents.json corrupted, creating fresh copy.")
+    return {}
+
+def save_agents(data: dict):
+    os.makedirs(os.path.dirname(AGENTS_FILE), exist_ok=True)
+    with open(AGENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def get_user_agents(user_id: int) -> list:
+    agents = load_agents()
+    return agents.get(str(user_id), [])
+
+
+def get_active_agent_content(user_id: int) -> str:
+    """Get combined content of all active agents for a user."""
+    agents = get_user_agents(user_id)
+    active_content = []
+    for agent in agents:
+        if agent.get("active", True):
+            content = agent.get("content", "").strip()
+            if content:
+                name = agent.get("name", agent.get("filename", "Agent"))
+                active_content.append(f"--- Agent: {name} ---\n{content}")
+    return "\n\n".join(active_content)
+
+
+def save_user_agents(user_id: int, agents_list: list):
+    all_agents = load_agents()
+    all_agents[str(user_id)] = agents_list
+    save_agents(all_agents)
+
+
+async def _ensure_agent_private(callback: CallbackQuery) -> bool:
+    """Ensure agent callbacks only run in the user's own private chat (DM with bot).
+
+    Agents are strictly per-user. Inline buttons must never be clickable by,
+    or affect, another user — so every agent interaction is confined to a
+    private chat where no one else can see or press the buttons.
+    """
+    if callback.message is None or callback.message.chat.type != ChatType.PRIVATE:
+        await callback.answer(
+            "Agent settings are private and can only be used in a direct chat with the bot.",
+            show_alert=True,
+        )
+        return False
+    return True
 
 # ─── Active Requests for Cancel Feature ──────────────────────────────────────
 # Structure: {message_id: {"user_id": int, "cancelled": bool}}
@@ -1292,6 +1425,45 @@ def remove_user_instruction(user_id: int):
     save_data(db)
 
 
+# ─── Question Mode Helpers ───────────────────────────────────────────────────
+
+def is_question_mode(user_id: int) -> bool:
+    """Return whether Question Mode is enabled for a specific user."""
+    qm = db.get("question_mode", {})
+    if isinstance(qm, bool):
+        return qm
+    return bool(qm.get(str(user_id), False))
+
+
+def set_question_mode(user_id: int, enabled: bool):
+    qm = db.get("question_mode", {})
+    if isinstance(qm, bool):
+        qm = {}
+    qm[str(user_id)] = bool(enabled)
+    db["question_mode"] = qm
+    save_data(db)
+
+
+def parse_ask_block(text: str):
+    """Extract a [ASK]...[/ASK] clarifying question and [OPT] options from AI text.
+
+    Returns (question, options_list, preamble_before_ask). question is None if
+    no [ASK] block is present.
+    """
+    m = re.search(r"\[ASK\](.*?)\[/ASK\]", text, re.DOTALL | re.IGNORECASE)
+    if not m:
+        return None, [], text
+    question = m.group(1).strip()
+    preamble = text[:m.start()].strip()
+    opts = re.findall(r"\[OPT\](.*?)\[/OPT\]", text, re.DOTALL | re.IGNORECASE)
+    options = [o.strip() for o in opts if o.strip()]
+    return question, options, preamble
+
+
+# Pending Question-Mode follow-ups: user_id -> {"chat_id": int, "options": [str]}
+pending_questions = {}
+
+
 def instruction_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [
@@ -1422,6 +1594,14 @@ def escape_md(text: str) -> str:
             result.append("\\")
         result.append(ch)
     return "".join(result)
+
+
+def escape_html(text: str) -> str:
+    """Escape special characters for Telegram HTML."""
+    if not text:
+        return ""
+    return text.replace("&", "&").replace("<", "<").replace(">", ">").replace('"', """).replace("'", "'")
+
 
 # Alias for backward compatibility
 md_escape = escape_md
@@ -1956,6 +2136,14 @@ async def send_ai_response(message: Message, user_text: str, model_key: str, use
     user_instruction = get_user_instruction(user_id)
     if user_instruction:
         messages.append({"role": "system", "content": f"User-specific instruction:\n{user_instruction}"})
+    
+    # Inject active agent content
+    agent_content = get_active_agent_content(user_id)
+    if agent_content:
+        messages.append({"role": "system", "content": f"Active agent instructions:\n{agent_content}"})
+    
+    if is_question_mode(user_id):
+        messages.append({"role": "system", "content": QUESTION_MODE_INSTRUCTION})
     messages.extend(history)
     messages.append({"role": "user", "content": user_text})
 
@@ -1978,6 +2166,26 @@ async def send_ai_response(message: Message, user_text: str, model_key: str, use
     # Clean response BEFORE saving to history
     response = clean_ai_response(response)
     add_to_history(user_id, "assistant", response)
+
+    # Question Mode: if the AI asked a clarifying question, render it with
+    # inline answer buttons instead of sending a normal reply.
+    if is_question_mode(user_id):
+        question, options, preamble = parse_ask_block(response)
+        if question:
+            kb = None
+            if options:
+                kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text=opt, callback_data=f"{QM_ANSWER_PREFIX}{i}")]
+                    for i, opt in enumerate(options)
+                ])
+            pending_questions[user_id] = {"chat_id": message.chat.id, "options": options}
+            try:
+                await thinking_msg.delete()
+            except Exception:
+                pass
+            qtext = f"{preamble}\n\n{question}".strip() if preamble else question
+            await message.reply(qtext, reply_markup=kb)
+            return
 
     try:
         await thinking_msg.delete()
@@ -2049,6 +2257,11 @@ async def cb_cancel_ai(callback: CallbackQuery):
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
+    # Check if started with /start agent parameter (from deep link)
+    if message.text and len(message.text.split()) > 1 and message.text.split()[1] == "agent":
+        await cmd_agent(message)
+        return
+    
     text = (
         f"Welcome{_EXC} I'm your *AI Group Manager Bot*{_DOT}\n\n"
         f"Add me to a group and use /authorize to activate me there{_DOT}\n"
@@ -2059,12 +2272,12 @@ async def cmd_start(message: Message):
     await message.answer(text, parse_mode=ParseMode.MARKDOWN_V2)
 
 
-@router.message(Command("authorize"))
+@router.message(Command("authorize","auth"))
 async def cmd_authorize(message: Message):
     user_id = message.from_user.id
     
     if not is_owner(user_id):
-        await message.answer(f"Only the bot owner can authorize{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+        await message.answer(f"Only the bot owner can authorize{_DOT}", parse_mode=ParseMode.HTML)
         return
     
     command_parts = message.text.split() if message.text else []
@@ -2074,51 +2287,131 @@ async def cmd_authorize(message: Message):
     if message.reply_to_message and message.reply_to_message.from_user:
         target = message.reply_to_message.from_user
         if target.id == bot.id:
-            await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
             return
-        authorize_user(target.id, user_id)
+authorize_user(target.id, user_id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
-            f"User *{md_escape(name)}* (`{target.id}`) has been globally authorized{_EXC}",
-            parse_mode=ParseMode.MARKDOWN_V2,
+            f"User <b>{escape_html(name)}</b> (ID: <code>{target.id}</code>) has been globally authorized{_EXC}\n"
+            f"They can now use the bot in DM and any group where I'm present{_EXC}",
+            parse_mode=ParseMode.HTML,
         )
         return
     
-    # If numeric argument in DM, it's a group ID
-    if message.chat.type == ChatType.PRIVATE and target_arg:
-        try:
-            group_id = int(target_arg)
-            chat_id_str = str(group_id)
+    # Parse argument for user or group
+    if target_arg:
+        # Try to parse as username (with or without @)
+        if target_arg.startswith("@") or (target_arg.replace("_", "").isalnum() and not target_arg.isdigit()):
+            username = target_arg.lstrip("@")
+            try:
+                chat = await bot.get_chat(username)
+                if chat.type == ChatType.PRIVATE:
+                    if chat.id == bot.id:
+                        await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
+                        return
+                    authorize_user(chat.id, user_id)
+                    name = chat.first_name or chat.username or str(chat.id)
+                    await message.answer(
+                        f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC}\n"
+                        f"They can now use the bot in DM and any group where I'm present{_EXC}",
+                        parse_mode=ParseMode.HTML,
+                    )
+                else:
+                    await message.answer(f"Usernames only work for users, not groups/channels{_DOT}", parse_mode=ParseMode.HTML)
+                return
+            except Exception as e:
+                await message.answer(f"Could not resolve username <code>{md_escape(username)}</code>{_DOT} {md_escape(str(e))}", parse_mode=ParseMode.HTML)
+                return
+        
+# Try numeric argument
+        if target_arg.lstrip("-").isdigit():
+            target_id = int(target_arg)
             
-            if chat_id_str in db["authorized_groups"]:
-                await message.answer(f"Group is already authorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            # If positive ID, try to resolve as user first (could be group)
+            if target_id > 0:
+                try:
+                    chat = await bot.get_chat(target_id)
+                    if chat.type == ChatType.PRIVATE:
+                        if chat.id == bot.id:
+                            await message.answer(f"Cannot authorize the bot itself{_DOT}", parse_mode=ParseMode.HTML)
+                            return
+                        authorize_user(chat.id, user_id)
+                        name = chat.first_name or chat.username or str(chat.id)
+                        await message.answer(
+                            f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC}\n"
+                            f"They can now use the bot in DM and any group where I'm present{_EXC}",
+                            parse_mode=ParseMode.HTML,
+                        )
+                    else:
+                        # It's a group/channel
+                        if message.chat.type == ChatType.PRIVATE:
+                            chat_id_str = str(target_id)
+                            if chat_id_str in db["authorized_groups"]:
+                                await message.answer(f"Group is already authorized{_DOT}", parse_mode=ParseMode.HTML)
+                                return
+                            
+                            db["authorized_groups"][chat_id_str] = {
+                                "title": f"Group {target_id}",
+                                "authorized_at": datetime.now().isoformat(),
+                                "authorized_by": user_id,
+                            }
+                            db["group_models"][chat_id_str] = DEFAULT_MODEL
+                            save_data(db)
+                            
+                            await message.answer(
+                                f"Group <code>{target_id}</code> has been authorized{_EXC}\n"
+                                f"Current AI model: <b>{escape_html(MODELS[DEFAULT_MODEL]['name'])}</b>",
+                                parse_mode=ParseMode.HTML,
+                            )
+                        else:
+                            await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT}", parse_mode=ParseMode.HTML)
+                        return
+                except Exception:
+                    # If get_chat fails, assume it's a user ID
+                    authorize_user(target_id, user_id)
+                    await message.answer(
+                        f"User <code>{target_id}</code> has been globally authorized{_EXC}\n"
+                        f"They can now use the bot in DM and any group where I'm present{_EXC}",
+                        parse_mode=ParseMode.HTML,
+                    )
                 return
             
-            db["authorized_groups"][chat_id_str] = {
-                "title": f"Group {group_id}",
-                "authorized_at": datetime.now().isoformat(),
-                "authorized_by": user_id,
-            }
-            db["group_models"][chat_id_str] = DEFAULT_MODEL
-            save_data(db)
-            
-            await message.answer(
-                f"Group `{group_id}` has been authorized{_EXC}\n"
-                f"Current AI model: *{md_escape(MODELS[DEFAULT_MODEL]['name'])}*",
-                parse_mode=ParseMode.MARKDOWN_V2,
-            )
-            return
-        except ValueError:
-            await message.answer(f"Invalid group ID{_DOT} Use `/authorize <group_id>`", parse_mode=ParseMode.MARKDOWN_V2)
-            return
+            # Negative ID = group
+            else:
+                if message.chat.type == ChatType.PRIVATE:
+                    group_id = abs(target_id)
+                    chat_id_str = str(group_id)
+                    if chat_id_str in db["authorized_groups"]:
+                        await message.answer(f"Group is already authorized{_DOT}", parse_mode=ParseMode.HTML)
+                        return
+                    
+                    db["authorized_groups"][chat_id_str] = {
+                        "title": f"Group {group_id}",
+                        "authorized_at": datetime.now().isoformat(),
+                        "authorized_by": user_id,
+                    }
+                    db["group_models"][chat_id_str] = DEFAULT_MODEL
+                    save_data(db)
+                    
+                    await message.answer(
+                        f"Group <code>{group_id}</code> has been authorized{_EXC}\n"
+                        f"Current AI model: <b>{escape_html(MODELS[DEFAULT_MODEL]['name'])}</b>",
+                        parse_mode=ParseMode.HTML,
+                    )
+                else:
+                    await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT}", parse_mode=ParseMode.HTML)
+                return
+        
+        await message.answer(f"Invalid argument{_DOT} Use <code>/authorize @username</code> or <code>/authorize <user_id></code> or reply to user{_DOT}", parse_mode=ParseMode.HTML)
+        return
     
     # In a group - authorize the group itself
     if message.chat.type != ChatType.PRIVATE:
         chat_id = str(message.chat.id)
-        chat_title = md_escape(message.chat.title or chat_id)
+        chat_title = escape_html(message.chat.title or chat_id)
         
         if chat_id in db["authorized_groups"]:
-            await message.answer(f"Group *{chat_title}* is already authorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            await message.answer(f"Group <b>{chat_title}</b> is already authorized{_DOT}", parse_mode=ParseMode.HTML)
             return
         
         db["authorized_groups"][chat_id] = {
@@ -2129,12 +2422,12 @@ async def cmd_authorize(message: Message):
         db["group_models"][chat_id] = DEFAULT_MODEL
         save_data(db)
         
-        model_name = md_escape(MODELS[DEFAULT_MODEL]["name"])
+        model_name = escape_html(MODELS[DEFAULT_MODEL]["name"])
         await message.answer(
-            f"Group *{chat_title}* has been authorized{_EXC}\n"
-            f"Current AI model: *{model_name}*\n"
+            f"Group <b>{chat_title}</b> has been authorized{_EXC}\n"
+            f"Current AI model: <b>{model_name}</b>\n"
             f"Use /settings to change the model{_DOT}",
-            parse_mode=ParseMode.MARKDOWN_V2,
+            parse_mode=ParseMode.HTML,
         )
         return
     
@@ -2157,18 +2450,47 @@ async def cmd_deauthorize(message: Message):
     target_arg = command_parts[1] if len(command_parts) > 1 else None
     
     # Reply to a user to deauthorize them globally
+# If replying to a user to deauthorize them globally
     if message.reply_to_message and message.reply_to_message.from_user:
         target = message.reply_to_message.from_user
         if target.id == bot.id:
-            await message.answer(f"Cannot deauthorize the bot{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            await message.answer(f"Cannot deauthorize the bot{_DOT}", parse_mode=ParseMode.HTML)
             return
         deauthorize_user(target.id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
-            f"User *{md_escape(name)}* has been globally deauthorized{_DOT}",
-            parse_mode=ParseMode.MARKDOWN_V2,
+            f"User <b>{md_escape(name)}</b> has been globally deauthorized{_DOT}",
+            parse_mode=ParseMode.HTML,
         )
         return
+    
+    # If target argument provided
+    if target_arg:
+        # Try username (with or without @)
+        if target_arg.startswith("@") or (target_arg.replace(".", "").isalnum() and not target_arg.isdigit()):
+            # This is likely a username, try to resolve it
+            # We need to check if user is in authorized_users
+            username = target_arg.lstrip("@").lower()
+            found = False
+            for uid, data in db.get("authorized_users", {}).items():
+                # We don't store username, so we can't easily lookup by username
+                # This would require a user lookup, which we can't do without API
+                pass
+            # Fall through to user ID check
+        
+        # Try user ID
+        try:
+            user_id = int(target_arg)
+            if deauthorize_user(user_id):
+                await message.answer(
+                    f"User <code>{md_escape(str(user_id))}</code> has been globally deauthorized{_DOT}",
+                    parse_mode=ParseMode.HTML,
+                )
+            else:
+                await message.answer(f"User <code>{md_escape(str(user_id))}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
+            return
+        except ValueError:
+            pass
     
     # In DM with a group ID
     if message.chat.type == ChatType.PRIVATE and target_arg:
@@ -2177,7 +2499,7 @@ async def cmd_deauthorize(message: Message):
             chat_id_str = str(group_id)
             
             if chat_id_str not in db["authorized_groups"]:
-                await message.answer(f"Group `{group_id}` is not authorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+                await message.answer(f"Group <code>{group_id}</code> is not authorized{_DOT}", parse_mode=ParseMode.HTML)
                 return
             
             del db["authorized_groups"][chat_id_str]
@@ -2185,11 +2507,10 @@ async def cmd_deauthorize(message: Message):
             db["conversations"].pop(chat_id_str, None)
             save_data(db)
             
-            await message.answer(f"Group `{group_id}` has been deauthorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            await message.answer(f"Group <code>{group_id}</code> has been deauthorized{_DOT}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
-            await message.answer(f"Invalid group ID{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
-            return
+            pass
     
     # In a group - deauthorize the group itself
     if message.chat.type != ChatType.PRIVATE:
@@ -2197,7 +2518,7 @@ async def cmd_deauthorize(message: Message):
         chat_title = md_escape(message.chat.title or chat_id)
         
         if chat_id not in db["authorized_groups"]:
-            await message.answer(f"Group *{chat_title}* is not authorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+            await message.answer(f"Group <b>{chat_title}</b> is not authorized{_DOT}", parse_mode=ParseMode.HTML)
             return
         
         del db["authorized_groups"][chat_id]
@@ -2205,7 +2526,7 @@ async def cmd_deauthorize(message: Message):
         db["conversations"].pop(chat_id, None)
         save_data(db)
         
-        await message.answer(f"Group *{chat_title}* has been deauthorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
+        await message.answer(f"Group <b>{chat_title}</b> has been deauthorized{_DOT}", parse_mode=ParseMode.HTML)
         return
     
     await message.answer(
@@ -2423,12 +2744,8 @@ async def cb_setname_enable(callback: CallbackQuery, state: FSMContext):
         )
 
 
-@router.message(Command("instruction", "i"))
+@router.message(Command("instructions", "i"))
 async def cmd_instructions(message: Message, state: FSMContext):
-    if message.chat.type != ChatType.PRIVATE and not is_authorized(message.chat.id, message.from_user.id):
-        await message.answer(f"This group is not authorized{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
-        return
-
     await state.clear()
     current = get_user_instruction(message.from_user.id)
     current_text = "Set" if current else "Not set"
@@ -2442,10 +2759,6 @@ async def cmd_instructions(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == INSTRUCTION_SET)
 async def cb_instruction_set(callback: CallbackQuery, state: FSMContext):
-    if callback.message and callback.message.chat.type != ChatType.PRIVATE and not is_authorized(callback.message.chat.id, callback.from_user.id):
-        await callback.answer("This group is not authorized.", show_alert=True)
-        return
-
     await state.set_state(InstructionState.waiting_instruction)
     await callback.answer("Send your instruction now.")
     if callback.message:
@@ -2458,10 +2771,6 @@ async def cb_instruction_set(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == INSTRUCTION_SHOW)
 async def cb_instruction_show(callback: CallbackQuery):
-    if callback.message and callback.message.chat.type != ChatType.PRIVATE and not is_authorized(callback.message.chat.id, callback.from_user.id):
-        await callback.answer("This group is not authorized.", show_alert=True)
-        return
-
     instruction = get_user_instruction(callback.from_user.id)
     if not instruction:
         await callback.answer("You have no instruction set.", show_alert=True)
@@ -3057,6 +3366,9 @@ async def cmd_help(message: Message):
         "/post - Publish text, code, or images to Telegraph\n"
         "/clearhistory - Clear your conversation history\n"
         "/instructions - Set your personal AI instruction\n"
+        "/agent - Manage your AI agents (add / toggle / remove)\n"
+        "/questionmode - Toggle clarifying-question mode (per-user)\n"
+        "/instruction - Show the getting-started guide\n"
         "/model - Show current AI model\n"
         "/help - Show this help message\n\n"
         "<b>Owner Only Commands:</b>\n"
@@ -3066,7 +3378,8 @@ async def cmd_help(message: Message):
         "/setchannel - Set image channel for /post\n"
         "/setname - Set bot alias name\n"
         "/setname enable - Re-enable bot alias settings if disabled\n"
-        "/clearallhistory - Clear everyone's history\n\n"
+        "/clearallhistory - Clear everyone's history\n"
+        "/log - Send bot logs since startup\n\n"
         "<b>How to use:</b>\n"
         "- Reply to my message to chat with me\n"
         "- Tag me with @ to ask something\n"
@@ -3092,6 +3405,92 @@ async def cmd_help(message: Message):
 
 
 # ─── Document Handler (File Reading) ─────────────────────────────────────────
+
+
+@router.message(AgentState.waiting_file, F.document)
+async def handle_agent_file(message: Message, state: FSMContext):
+    doc = message.document
+    file_name = doc.file_name or "agent.md"
+
+    if not file_name.lower().endswith(".md"):
+        await message.answer("Only *.md* files are accepted. Please send a .md file.")
+        return
+
+    if doc.file_size and doc.file_size > MAX_AGENT_FILE_KB * 1024:
+        await message.answer(f"File too large. Maximum size is *{MAX_AGENT_FILE_KB}KB*.")
+        return
+
+    file = await bot.get_file(doc.file_id)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as tmp:
+        tmp_path = tmp.name
+        await bot.download_file(file.file_path, tmp_path)
+
+    try:
+        with open(tmp_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        await message.answer(f"Error reading file: {e}")
+        os.unlink(tmp_path)
+        return
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass
+
+    await message.delete()
+    await state.update_data(content=content, filename=file_name)
+
+    buttons = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Default Name", callback_data=AGENT_RENAME_DEFAULT)],
+        [InlineKeyboardButton(text="Change Name", callback_data=AGENT_RENAME_CUSTOM)],
+    ])
+    await message.answer(
+        f"Do you want to rename your agent or keep the default filename *{md_escape(file_name)}*?",
+        reply_markup=buttons,
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
+
+
+@router.message(AgentState.waiting_rename)
+async def handle_agent_rename(message: Message, state: FSMContext):
+    if not message.text:
+        return
+
+    if message.text.startswith("/"):
+        await state.clear()
+        return
+
+    name = message.text.strip()[:40]
+    if not name:
+        await message.answer("Name cannot be empty.")
+        return
+
+    data = await state.get_data()
+    content = data.get("content", "")
+    filename = data.get("filename", "agent.md")
+
+    user_agents = get_user_agents(message.from_user.id)
+    user_agents.append({
+        "name": name,
+        "filename": filename,
+        "content": content,
+        "active": True,
+        "added_at": datetime.now().isoformat(),
+    })
+    save_user_agents(message.from_user.id, user_agents)
+    await state.clear()
+
+    escaped_name = md_escape(name)
+    success_msg = await message.answer(f"Agent <b>{html.escape(name)}</b> saved successfully!", parse_mode=ParseMode.HTML)
+    await asyncio.sleep(2)
+    try:
+        await success_msg.delete()
+    except:
+        pass
+    active_count = sum(1 for a in user_agents if a.get("active", True))
+    text = f"You have <b>{active_count} / {len(user_agents)}</b> agents active (max 5). Tap to toggle."
+    await message.answer(text, reply_markup=agent_menu_keyboard(user_agents), parse_mode=ParseMode.HTML)
 
 
 @router.message(F.document)
@@ -3376,6 +3775,507 @@ async def handle_message(message: Message):
     await send_ai_response(message, user_text, model_key, message.from_user.id)
 
 
+# ─── Agent Command & Handlers ───────────────────────────────────────────────
+
+
+def agent_menu_keyboard(user_agents: list) -> InlineKeyboardMarkup:
+    buttons = []
+    if user_agents:
+        for i, agent in enumerate(user_agents):
+            name = agent.get("name", agent.get("filename", "Unnamed"))
+            active = agent.get("active", True)
+            prefix = "✅ " if active else "⬜ "
+            buttons.append([InlineKeyboardButton(text=f"{prefix}{name}", callback_data=f"{AGENT_TOGGLE_PREFIX}{i}")])
+    buttons.append([
+        InlineKeyboardButton(text="Add Agent", callback_data=AGENT_ADD),
+        InlineKeyboardButton(text="Remove Agent", callback_data=AGENT_REMOVE),
+    ])
+    buttons.append([
+        InlineKeyboardButton(text="Close", callback_data=AGENT_CLOSE),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def agent_remove_keyboard(user_agents: list, selected: set, page: int = 0) -> InlineKeyboardMarkup:
+    buttons = []
+    start = page * AGENTS_PER_PAGE
+    end = min(start + AGENTS_PER_PAGE, len(user_agents))
+    for i in range(start, end):
+        name = user_agents[i].get("name", user_agents[i].get("filename", "Unnamed"))
+        prefix = "✅ " if i in selected else "⬜ "
+        buttons.append([InlineKeyboardButton(text=f"{prefix}{name}", callback_data=f"{AGENT_SELECT_PREFIX}{i}")])
+    
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton(text="⬅", callback_data=f"{AGENT_PAGE_PREFIX}{page - 1}"))
+    if end < len(user_agents):
+        nav_buttons.append(InlineKeyboardButton(text="➡", callback_data=f"{AGENT_PAGE_PREFIX}{page + 1}"))
+    if nav_buttons:
+        buttons.append(nav_buttons)
+    
+    buttons.append([
+        InlineKeyboardButton(text="Done", callback_data=AGENT_DONE),
+        InlineKeyboardButton(text="Cancel", callback_data=AGENT_CANCEL),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+@router.message(Command("agent", "agents"))
+async def cmd_agent(message: Message):
+    if message.chat.type != ChatType.PRIVATE:
+        bot_info = await bot.get_me()
+        deep_link = f"https://t.me/{bot_info.username}?start=agent"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Open DM", url=deep_link)]
+        ])
+        await message.answer(
+            f"Agent management is private and only works in a direct chat with the bot{_DOT}\n"
+            f"Please message me in private to manage your agents{_DOT}",
+            reply_markup=kb,
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    user_agents = get_user_agents(message.from_user.id)
+    if not user_agents:
+        text = "You don't have any current agents."
+    else:
+        active_count = sum(1 for a in user_agents if a.get("active", True))
+        text = f"You have <b>{active_count} / {len(user_agents)}</b> agents active (max 5). Tap to toggle."
+
+    await message.answer(text, reply_markup=agent_menu_keyboard(user_agents), parse_mode=ParseMode.HTML)
+
+
+@router.callback_query(F.data.startswith(AGENT_TOGGLE_PREFIX))
+async def cb_agent_toggle(callback: CallbackQuery):
+    if not await _ensure_agent_private(callback):
+        return
+    try:
+        idx = int(callback.data.split(":")[-1])
+    except ValueError:
+        await callback.answer("Invalid selection.")
+        return
+
+    user_agents = get_user_agents(callback.from_user.id)
+    if not user_agents or idx >= len(user_agents):
+        await callback.answer("Agent not found.")
+        return
+
+    current_active = user_agents[idx].get("active", True)
+    active_count = sum(1 for a in user_agents if a.get("active", True))
+
+    if current_active:
+        user_agents[idx]["active"] = False
+    else:
+        if active_count >= 5:
+            await callback.answer("Maximum 5 agents can be active at a time.", show_alert=True)
+            return
+        user_agents[idx]["active"] = True
+
+    save_user_agents(callback.from_user.id, user_agents)
+    await callback.answer()
+    if callback.message:
+        active_count = sum(1 for a in user_agents if a.get("active", True))
+        text = f"You have <b>{active_count} / {len(user_agents)}</b> agents active (max 5). Tap to toggle."
+        await callback.message.edit_text(text, reply_markup=agent_menu_keyboard(user_agents), parse_mode=ParseMode.HTML)
+
+
+@router.callback_query(F.data == AGENT_CLOSE)
+async def cb_agent_close(callback: CallbackQuery):
+    if not await _ensure_agent_private(callback):
+        return
+    await callback.answer("Closed.")
+    if callback.message:
+        try:
+            await callback.message.delete()
+        except:
+            pass
+
+
+@router.callback_query(F.data == AGENT_ADD)
+async def cb_agent_add(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    user_agents = get_user_agents(callback.from_user.id)
+    if len(user_agents) >= MAX_AGENTS:
+        await callback.answer(f"Maximum {MAX_AGENTS} agents allowed.", show_alert=True)
+        return
+    
+    await state.set_state(AgentState.waiting_file)
+    await callback.answer("Send your .md file now.")
+    if callback.message:
+        await callback.message.edit_text(
+            f"Send your <b>.md</b> agent file.\n"
+            f"Maximum size: <b>{MAX_AGENT_FILE_KB}KB</b>.\n"
+            f"You can have up to <b>{MAX_AGENTS}</b> agents.",
+            parse_mode=ParseMode.HTML,
+        )
+
+
+
+@router.callback_query(F.data == AGENT_RENAME_DEFAULT)
+async def cb_agent_rename_default(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    data = await state.get_data()
+    content = data.get("content", "")
+    filename = data.get("filename", "agent.md")
+    name = os.path.splitext(filename)[0].replace("_", " ").replace("-", " ").title()
+    
+    user_agents = get_user_agents(callback.from_user.id)
+    user_agents.append({
+        "name": name,
+        "filename": filename,
+        "content": content,
+        "active": True,
+        "added_at": datetime.now().isoformat(),
+    })
+    save_user_agents(callback.from_user.id, user_agents)
+    await state.clear()
+
+    await callback.answer("Agent saved successfully!")
+    if callback.message:
+        await callback.message.edit_text(f"Agent <b>{html.escape(name)}</b> saved successfully!", parse_mode=ParseMode.HTML)
+        await asyncio.sleep(2)
+        active_count = sum(1 for a in user_agents if a.get("active", True))
+        text = f"You have <b>{active_count} / {len(user_agents)}</b> agents active (max 5). Tap to toggle."
+        await callback.message.edit_text(text, reply_markup=agent_menu_keyboard(user_agents), parse_mode=ParseMode.HTML)
+
+
+@router.callback_query(F.data == AGENT_RENAME_CUSTOM)
+async def cb_agent_rename_custom(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    await state.set_state(AgentState.waiting_rename)
+    await callback.answer("Enter the new name now.")
+    if callback.message:
+        await callback.message.edit_text(
+            "Send the new name for your agent.\n"
+            "Max 40 characters.",
+            parse_mode=ParseMode.HTML,
+        )
+
+
+
+@router.callback_query(F.data == AGENT_REMOVE)
+async def cb_agent_remove(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    user_agents = get_user_agents(callback.from_user.id)
+    if not user_agents:
+        await callback.answer("No agents to remove.", show_alert=True)
+        return
+    
+    await state.update_data(selected=[], page=0)
+    await callback.answer()
+    if callback.message:
+        await callback.message.edit_text(
+            "Select agents to remove. When ready, tap Done.",
+            reply_markup=agent_remove_keyboard(user_agents, selected=set()),
+            parse_mode=ParseMode.HTML,
+        )
+
+
+@router.callback_query(F.data.startswith(AGENT_SELECT_PREFIX))
+async def cb_agent_select(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    try:
+        idx = int(callback.data.split(":")[-1])
+    except ValueError:
+        await callback.answer("Invalid selection.")
+        return
+    
+    user_agents = get_user_agents(callback.from_user.id)
+    if not user_agents or idx >= len(user_agents):
+        await callback.answer("Agent not found.")
+        return
+    
+    state_data = await state.get_data()
+    selected = set(state_data.get("selected", []))
+    
+    if idx in selected:
+        selected.remove(idx)
+    else:
+        if len(selected) >= 5:
+            await callback.answer("Maximum 5 agents can be selected at a time.", show_alert=True)
+            return
+        selected.add(idx)
+    
+    await state.update_data(selected=list(selected))
+    
+    page = state_data.get("page", 0)
+    
+    if callback.message:
+        await callback.message.edit_reply_markup(
+            reply_markup=agent_remove_keyboard(user_agents, selected, page)
+        )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith(AGENT_PAGE_PREFIX))
+async def cb_agent_page(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    try:
+        page = int(callback.data.split(":")[-1])
+    except ValueError:
+        await callback.answer("Invalid page.")
+        return
+    
+    user_agents = get_user_agents(callback.from_user.id)
+    state_data = await state.get_data()
+    selected = set(state_data.get("selected", []))
+    await state.update_data(page=page)
+    
+    if callback.message:
+        await callback.message.edit_reply_markup(
+            reply_markup=agent_remove_keyboard(user_agents, selected, page)
+        )
+    await callback.answer()
+
+
+@router.callback_query(F.data == AGENT_DONE)
+async def cb_agent_done(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    state_data = await state.get_data()
+    selected = set(state_data.get("selected", []))
+    
+    if not selected:
+        await callback.answer("Please select at least one agent.", show_alert=True)
+        return
+    
+    user_agents = get_user_agents(callback.from_user.id)
+    # Remove in reverse order so indices remain valid
+    for idx in sorted(selected, reverse=True):
+        if 0 <= idx < len(user_agents):
+            user_agents.pop(idx)
+    
+    save_user_agents(callback.from_user.id, user_agents)
+    await state.clear()
+    
+    await callback.answer(f"Removed {len(selected)} agent(s).")
+    if callback.message:
+        if user_agents:
+            names = "\n".join(f"{i+1}. {a.get('name', 'Unnamed')}" for i, a in enumerate(user_agents))
+            await callback.message.edit_text(
+                f"Agents removed. Current agents:\n{names}",
+                reply_markup=agent_menu_keyboard(user_agents),
+            )
+        else:
+            await callback.message.edit_text(
+                "You don't have any current agents.",
+                reply_markup=agent_menu_keyboard(user_agents),
+            )
+
+
+@router.callback_query(F.data == AGENT_CANCEL)
+async def cb_agent_cancel(callback: CallbackQuery, state: FSMContext):
+    if not await _ensure_agent_private(callback):
+        return
+    await state.clear()
+    
+    user_agents = get_user_agents(callback.from_user.id)
+    await callback.answer("Cancelled.")
+    if callback.message:
+        if user_agents:
+            names = "\n".join(f"{i+1}. {a.get('name', 'Unnamed')}" for i, a in enumerate(user_agents))
+            await callback.message.edit_text(
+                f"Operation cancelled. Your agents:\n{names}",
+                reply_markup=agent_menu_keyboard(user_agents),
+            )
+        else:
+            await callback.message.edit_text(
+                "Operation cancelled. You don't have any current agents.",
+                reply_markup=agent_menu_keyboard(user_agents),
+            )
+
+
+# ─── Question Mode Command & Handlers ───────────────────────────────────────
+
+
+def _qm_menu_markup(enabled: bool, user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=("✅ Enable" if enabled else "Enable"),
+                callback_data=f"{QM_ENABLE}{user_id}",
+            ),
+            InlineKeyboardButton(
+                text=("✅ Disable" if not enabled else "Disable"),
+                callback_data=f"{QM_DISABLE}{user_id}",
+            ),
+        ],
+        [
+            InlineKeyboardButton(text="Close", callback_data=f"{QM_CLOSE}{user_id}"),
+        ]
+    ])
+
+
+def _qm_menu_text(enabled: bool) -> str:
+    return (
+        f"<b>Question Mode</b> (currently {'ON' if enabled else 'OFF'}) — per-user setting\n\n"
+        f"When ON, I ask clarifying questions with inline buttons for complex or "
+        f"building/development queries, and I avoid guessing."
+    )
+
+
+@router.message(Command("questionmode"))
+async def cmd_questionmode(message: Message):
+    user_id = message.from_user.id
+    enabled = is_question_mode(user_id)
+    await message.answer(
+        _qm_menu_text(enabled),
+        reply_markup=_qm_menu_markup(enabled, user_id),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+@router.callback_query(F.data.startswith(QM_ENABLE))
+async def cb_qm_enable(callback: CallbackQuery):
+    try:
+        target_user_id = int(callback.data[len(QM_ENABLE):])
+    except (ValueError, IndexError):
+        await callback.answer("Invalid request.", show_alert=True)
+        return
+    
+    # Allow owner to change anyone's setting, users can only change their own
+    if not (_is_owner(callback.from_user.id) or callback.from_user.id == target_user_id):
+        await callback.answer("You can only change your own setting.", show_alert=True)
+        return
+    
+    set_question_mode(target_user_id, True)
+    await callback.message.edit_text(
+        _qm_menu_text(True),
+        reply_markup=_qm_menu_markup(True, target_user_id),
+        parse_mode=ParseMode.HTML,
+    )
+    await callback.answer("Question Mode enabled.")
+
+
+@router.callback_query(F.data.startswith(QM_DISABLE))
+async def cb_qm_disable(callback: CallbackQuery):
+    try:
+        target_user_id = int(callback.data[len(QM_DISABLE):])
+    except (ValueError, IndexError):
+        await callback.answer("Invalid request.", show_alert=True)
+        return
+    
+    if not (_is_owner(callback.from_user.id) or callback.from_user.id == target_user_id):
+        await callback.answer("You can only change your own setting.", show_alert=True)
+        return
+    
+    set_question_mode(target_user_id, False)
+    await callback.message.edit_text(
+        _qm_menu_text(False),
+        reply_markup=_qm_menu_markup(False, target_user_id),
+        parse_mode=ParseMode.HTML,
+    )
+    await callback.answer("Question Mode disabled.")
+
+
+@router.callback_query(F.data.startswith(QM_CLOSE))
+async def cb_qm_close(callback: CallbackQuery):
+    try:
+        target_user_id = int(callback.data[len(QM_CLOSE):])
+    except (ValueError, IndexError):
+        await callback.answer("Invalid request.", show_alert=True)
+        return
+    
+    if not (_is_owner(callback.from_user.id) or callback.from_user.id == target_user_id):
+        await callback.answer("You can only close your own menu.", show_alert=True)
+        return
+    
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await callback.answer("Closed.")
+
+
+@router.callback_query(F.data.startswith(QM_ANSWER_PREFIX))
+async def cb_question_answer(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    pending = pending_questions.get(user_id)
+    if not pending:
+        await callback.answer("No pending question.", show_alert=True)
+        return
+
+    try:
+        idx = int(callback.data[len(QM_ANSWER_PREFIX):])
+        answer = pending["options"][idx]
+    except (ValueError, IndexError, KeyError):
+        await callback.answer("Invalid option.", show_alert=True)
+        return
+
+    pending_questions.pop(user_id, None)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await callback.answer()
+
+    model_key = get_group_model(callback.message.chat.id)
+    await send_ai_response(callback.message, answer, model_key, user_id)
+
+
+# ─── Instruction Guide Command ───────────────────────────────────────────────
+
+
+@router.message(Command("instruction"))
+async def cmd_instruction(message: Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Close", callback_data=INSTR_CLOSE)]
+    ])
+    await message.answer(INSTRUCTION_GUIDE, reply_markup=kb, parse_mode=ParseMode.HTML)
+
+
+@router.callback_query(F.data == INSTR_CLOSE)
+async def cb_instr_close(callback: CallbackQuery):
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await callback.answer("Closed.")
+
+
+# ─── Log Command ───────────────────────────────────────────────────────────────
+
+
+@router.message(Command("log"))
+async def cmd_log(message: Message):
+    if not _is_owner(message.from_user.id):
+        await message.answer("Only the bot owner can view logs.")
+        return
+
+    if not os.path.exists(LOG_FILE):
+        await message.answer("No logs have been recorded yet.")
+        return
+
+    size = os.path.getsize(LOG_FILE)
+    caption = "Bot logs since startup."
+
+    # Telegram documents are capped; truncate very large logs to the tail.
+    if size > 20 * 1024 * 1024:
+        with open(LOG_FILE, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+        truncated = os.path.join(os.path.dirname(LOG_FILE), "bot_logs_truncated.txt")
+        with open(truncated, "w", encoding="utf-8") as f:
+            f.writelines(lines[-2000:])
+        await message.answer_document(
+            FSInputFile(truncated),
+            caption=f"{caption} (last 2000 lines; the full log was too large to send)",
+        )
+        try:
+            os.remove(truncated)
+        except Exception:
+            pass
+        return
+
+    await message.answer_document(FSInputFile(LOG_FILE), caption=caption)
+
+
 # ─── Startup ─────────────────────────────────────────────────────────────────
 
 
@@ -3399,6 +4299,9 @@ async def on_startup():
         BotCommand(command="clearhistory", description="Clear your conversation history"),
         BotCommand(command="help", description="Show help"),
         BotCommand(command="model", description="Show current AI model"),
+        BotCommand(command="agent", description="Manage your AI agents"),
+        BotCommand(command="questionmode", description="Toggle clarifying-question mode"),
+        BotCommand(command="instruction", description="Show the getting-started guide"),
     ]
     owner_commands = [
         BotCommand(command="start", description="Start the bot"),
@@ -3418,6 +4321,10 @@ async def on_startup():
         BotCommand(command="clearallhistory", description="Clear everyone's history"),
         BotCommand(command="restart", description="Restart the bot"),
         BotCommand(command="help", description="Show help"),
+        BotCommand(command="agent", description="Manage your AI agents"),
+        BotCommand(command="questionmode", description="Toggle clarifying-question mode"),
+        BotCommand(command="instruction", description="Show the getting-started guide"),
+        BotCommand(command="log", description="Send bot logs since startup"),
     ]
 
     await bot.set_my_commands(user_commands, scope=BotCommandScopeAllPrivateChats())
