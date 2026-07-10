@@ -3836,7 +3836,7 @@ async def cmd_agent(message: Message):
             f"Agent management is private and only works in a direct chat with the bot{_DOT}\n"
             f"Please message me in private to manage your agents{_DOT}",
             reply_markup=kb,
-            parse_mode=ParseMode.HTML,
+            parse_mode=ParseMode.MARKDOWN_V2,
         )
         return
 
