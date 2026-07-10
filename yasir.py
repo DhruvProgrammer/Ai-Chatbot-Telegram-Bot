@@ -1600,7 +1600,12 @@ def escape_html(text: str) -> str:
     """Escape special characters for Telegram HTML."""
     if not text:
         return ""
-    return text.replace("&", "&").replace("<", "<").replace(">", ">").replace('"', """).replace("'", "'")
+    return (text
+        .replace("&", "&")
+        .replace("<", "<")
+        .replace(">", ">")
+        .replace('"', """)
+        .replace("'", "'"))
 
 
 # Alias for backward compatibility
@@ -1931,7 +1936,7 @@ def format_for_model(text: str, model_key: str) -> str:
 
 def get_user_mention(user) -> str:
     name = user.first_name or user.username or "User"
-    escaped_name = md_escape(name)
+    escaped_name = escape_html(name)
     return f"[{escaped_name}](tg://user?id={user.id})"
 
 
@@ -2493,7 +2498,7 @@ async def cmd_deauthorize(message: Message):
                     parse_mode=ParseMode.HTML,
                 )
             else:
-                await message.answer(f"User <code>{md_escape(str(user_id))}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
+                await message.answer(f"User <code>{str(user_id)}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
             pass
@@ -3487,7 +3492,7 @@ async def handle_agent_rename(message: Message, state: FSMContext):
     save_user_agents(message.from_user.id, user_agents)
     await state.clear()
 
-    escaped_name = md_escape(name)
+    escaped_name = escape_html(name)
     success_msg = await message.answer(f"Agent <b>{html.escape(name)}</b> saved successfully!", parse_mode=ParseMode.HTML)
     await asyncio.sleep(2)
     try:
