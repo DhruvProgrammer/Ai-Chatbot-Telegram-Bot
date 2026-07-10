@@ -144,7 +144,7 @@ MODELS = {
         
 }
 
-DEFAULT_MODEL = "google"
+DEFAULT_MODEL = "nemotron"
 DEFAULT_VISION_MODEL = "phi"
 MAX_HISTORY = 20
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
