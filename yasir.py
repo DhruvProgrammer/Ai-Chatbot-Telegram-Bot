@@ -205,6 +205,8 @@ TELEGRAPH_API = "https://api.graph.org"
 _ESC = "\\"
 _DOT = "\\."
 _EXC = "\\!"
+_EXC_HTML = "!"
+_DOT_HTML = "."
 _DASH = "\\-"
 _GT = "\\>"
 _LPAREN = "\\("
@@ -2297,8 +2299,8 @@ async def cmd_authorize(message: Message):
         authorize_user(target.id, user_id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
-            f"User <b>{escape_html(name)}</b> (ID: <code>{target.id}</code>) has been globally authorized{_EXC}\n"
-            f"They can now use the bot in DM and any group where I'm present{_EXC}",
+            f"User <b>{escape_html(name)}</b> (ID: <code>{target.id}</code>) has been globally authorized{_EXC_HTML}\n"
+            f"They can now use the bot in DM and any group where I'm present{_EXC_HTML}",
             parse_mode=ParseMode.HTML,
         )
         return
@@ -2317,8 +2319,8 @@ async def cmd_authorize(message: Message):
                     authorize_user(chat.id, user_id)
                     name = chat.first_name or chat.username or str(chat.id)
                     await message.answer(
-                        f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC}\n"
-                        f"They can now use the bot in DM and any group where I'm present{_EXC}",
+                        f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC_HTML}\n"
+                        f"They can now use the bot in DM and any group where I'm present{_EXC_HTML}",
                         parse_mode=ParseMode.HTML,
                     )
                 else:
@@ -2343,8 +2345,8 @@ async def cmd_authorize(message: Message):
                         authorize_user(chat.id, user_id)
                         name = chat.first_name or chat.username or str(chat.id)
                         await message.answer(
-                            f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC}\n"
-                            f"They can now use the bot in DM and any group where I'm present{_EXC}",
+                            f"User <b>{escape_html(name)}</b> (ID: <code>{chat.id}</code>) has been globally authorized{_EXC_HTML}\n"
+                            f"They can now use the bot in DM and any group where I'm present{_EXC_HTML}",
                             parse_mode=ParseMode.HTML,
                         )
                     else:
@@ -2374,9 +2376,9 @@ async def cmd_authorize(message: Message):
                 except Exception:
                     # If get_chat fails, assume it's a user ID
                     authorize_user(target_id, user_id)
-                    await message.answer(
-                        f"User <code>{target_id}</code> has been globally authorized{_EXC}\n"
-                        f"They can now use the bot in DM and any group where I'm present{_EXC}",
+await message.answer(
+                        f"User <code>{target_id}</code> has been globally authorized{_EXC_HTML}\n"
+                        f"They can now use the bot in DM and any group where I'm present{_EXC_HTML}",
                         parse_mode=ParseMode.HTML,
                     )
                 return
@@ -2460,10 +2462,10 @@ async def cmd_deauthorize(message: Message):
         if target.id == bot.id:
             await message.answer(f"Cannot deauthorize the bot{_DOT}", parse_mode=ParseMode.HTML)
             return
-        deauthorize_user(target.id)
+deauthorize_user(target.id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
-            f"User <b>{escape_html(name)}</b> has been globally deauthorized{_DOT}",
+            f"User <b>{escape_html(name)}</b> has been globally deauthorized{_EXC_HTML}",
             parse_mode=ParseMode.HTML,
         )
         return
@@ -2485,13 +2487,13 @@ async def cmd_deauthorize(message: Message):
         # Try user ID
         try:
             user_id = int(target_arg)
-            if deauthorize_user(user_id):
-                await message.answer(
-                    f"User <code>{user_id}</code> has been globally deauthorized{_DOT}",
-                    parse_mode=ParseMode.HTML,
-                )
-            else:
-                await message.answer(f"User <code>{user_id}</code> was not authorized{_DOT}", parse_mode=ParseMode.HTML)
+if deauthorize_user(user_id):
+            await message.answer(
+                f"User <code>{user_id}</code> has been globally deauthorized{_EXC_HTML}",
+                parse_mode=ParseMode.HTML,
+            )
+        else:
+            await message.answer(f"User <code>{user_id}</code> was not authorized{_EXC_HTML}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
             pass
@@ -2511,7 +2513,7 @@ async def cmd_deauthorize(message: Message):
             db["conversations"].pop(chat_id_str, None)
             save_data(db)
             
-            await message.answer(f"Group <code>{group_id}</code> has been deauthorized{_DOT}", parse_mode=ParseMode.HTML)
+            await message.answer(f"Group <code>{group_id}</code> has been deauthorized{_EXC_HTML}", parse_mode=ParseMode.HTML)
             return
         except ValueError:
             pass
@@ -2530,7 +2532,7 @@ async def cmd_deauthorize(message: Message):
         db["conversations"].pop(chat_id, None)
         save_data(db)
         
-        await message.answer(f"Group <b>{chat_title}</b> has been deauthorized{_DOT}", parse_mode=ParseMode.HTML)
+        await message.answer(f"Group <b>{chat_title}</b> has been deauthorized{_EXC_HTML}", parse_mode=ParseMode.HTML)
         return
     
     await message.answer(
