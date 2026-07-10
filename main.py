@@ -36,11 +36,11 @@ OWNER_ID =      #enter your owner id
 
 NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_EMBED_URL = "https://integrate.api.nvidia.com/v1/embeddings"
-NVIDIA_API_KEY_ALT = "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"
+NVIDIA_API_KEY_ALT = ""
 
 PROXY_URL = ""
 
-TAVILY_API_KEY = "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"
+TAVILY_API_KEY = ""
 
 MODELS = {
     "nemotron": {
