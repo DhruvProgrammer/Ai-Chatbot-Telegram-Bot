@@ -2327,10 +2327,10 @@ async def cmd_authorize(message: Message):
                     await message.answer(f"Usernames only work for users, not groups/channels{_DOT_HTML}", parse_mode=ParseMode.HTML)
                 return
             except Exception as e:
-                await message.answer(f"Could not resolve username <code>{md_escape(username)}</code>{_DOT} {md_escape(str(e))}", parse_mode=ParseMode.HTML)
+                await message.answer(f"Could not resolve username <code>{escape_html(username)}</code>{_DOT_HTML} {escape_html(str(e))}", parse_mode=ParseMode.HTML)
                 return
         
-# Try numeric argument
+        # Try numeric argument
         if target_arg.lstrip("-").isdigit():
             target_id = int(target_arg)
             
@@ -2366,7 +2366,7 @@ async def cmd_authorize(message: Message):
                             save_data(db)
                             
                             await message.answer(
-                                f"Group <code>{target_id}</code> has been authorized{_EXC}\n"
+                                f"Group <code>{target_id}</code> has been authorized{_EXC_HTML}\n"
                                 f"Current AI model: <b>{escape_html(MODELS[DEFAULT_MODEL]['name'])}</b>",
                                 parse_mode=ParseMode.HTML,
                             )
@@ -2376,7 +2376,7 @@ async def cmd_authorize(message: Message):
                 except Exception:
                     # If get_chat fails, assume it's a user ID
                     authorize_user(target_id, user_id)
-await message.answer(
+                    await message.answer(
                         f"User <code>{target_id}</code> has been globally authorized{_EXC_HTML}\n"
                         f"They can now use the bot in DM and any group where I'm present{_EXC_HTML}",
                         parse_mode=ParseMode.HTML,
@@ -2401,7 +2401,7 @@ await message.answer(
                     save_data(db)
                     
                     await message.answer(
-                        f"Group <code>{group_id}</code> has been authorized{_EXC}\n"
+                        f"Group <code>{group_id}</code> has been authorized{_EXC_HTML}\n"
                         f"Current AI model: <b>{escape_html(MODELS[DEFAULT_MODEL]['name'])}</b>",
                         parse_mode=ParseMode.HTML,
                     )
@@ -2409,7 +2409,7 @@ await message.answer(
                     await message.answer(f"Use <code>/authorize</code> in DM to authorize groups by ID{_DOT_HTML}", parse_mode=ParseMode.HTML)
                 return
         
-        await message.answer(f"Invalid argument{_DOT} Use <code>/authorize @username</code> or <code>/authorize <user_id></code> or reply to user{_DOT_HTML}", parse_mode=ParseMode.HTML)
+        await message.answer(f"Invalid argument{_DOT_HTML} Use <code>/authorize @username</code> or <code>/authorize <user_id></code> or reply to user{_DOT_HTML}", parse_mode=ParseMode.HTML)
         return
     
     # In a group - authorize the group itself
@@ -2431,23 +2431,21 @@ await message.answer(
         
         model_name = escape_html(MODELS[DEFAULT_MODEL]["name"])
         await message.answer(
-            f"Group <b>{chat_title}</b> has been authorized{_EXC}\n"
+            f"Group <b>{chat_title}</b> has been authorized{_EXC_HTML}\n"
             f"Current AI model: <b>{model_name}</b>\n"
-            f"Use /settings to change the model{_DOT}",
+            f"Use /settings to change the model{_DOT_HTML}",
             parse_mode=ParseMode.HTML,
         )
         return
     
     await message.answer(
         f"Usage:\n"
-        f"- `/authorize` in a group - Authorize the group\n"
-        f"- `/authorize <group_id>` in DM - Authorize a group by ID\n"
-        f"- Reply to a user with `/authorize` - Globally authorize that user",
-        parse_mode=ParseMode.MARKDOWN_V2,
+        f"- <code>/authorize</code> in a group - Authorize the group\n"
+        f"- <code>/authorize @username</code> or <code>/authorize <user_id></code> in DM - Globally authorize a user\n"
+        f"- Reply to a user with <code>/authorize</code> - Globally authorize that user",
+        parse_mode=ParseMode.HTML,
     )
 
-
-@router.message(Command("deauthorize", "unauthorize"))
 async def cmd_deauthorize(message: Message):
     if not is_owner(message.from_user.id):
         await message.answer(f"Only the bot owner can deauthorize{_DOT_HTML}", parse_mode=ParseMode.HTML)
@@ -2462,7 +2460,7 @@ async def cmd_deauthorize(message: Message):
         if target.id == bot.id:
             await message.answer(f"Cannot deauthorize the bot{_DOT_HTML}", parse_mode=ParseMode.HTML)
             return
-deauthorize_user(target.id)
+        deauthorize_user(target.id)
         name = target.first_name or target.username or str(target.id)
         await message.answer(
             f"User <b>{escape_html(name)}</b> has been globally deauthorized{_EXC_HTML}",
@@ -2521,7 +2519,7 @@ deauthorize_user(target.id)
     # In a group - deauthorize the group itself
     if message.chat.type != ChatType.PRIVATE:
         chat_id = str(message.chat.id)
-        chat_title = md_escape(message.chat.title or chat_id)
+        chat_title = escape_html(message.chat.title or chat_id)
         
         if chat_id not in db["authorized_groups"]:
             await message.answer(f"Group <b>{chat_title}</b> is not authorized{_DOT_HTML}", parse_mode=ParseMode.HTML)
@@ -2537,14 +2535,12 @@ deauthorize_user(target.id)
     
     await message.answer(
         f"Usage:\n"
-        f"- `/deauthorize` in a group - Deauthorize the group\n"
-        f"- `/deauthorize <group_id>` in DM - Deauthorize a group by ID\n"
-        f"- Reply to a user with `/deauthorize` - Globally deauthorize that user",
-        parse_mode=ParseMode.MARKDOWN_V2,
+        f"- <code>/deauthorize</code> in a group - Deauthorize the group\n"
+        f"- <code>/deauthorize <group_id></code> in DM - Deauthorize a group by ID\n"
+        f"- Reply to a user with <code>/deauthorize</code> - Globally deauthorize that user",
+        parse_mode=ParseMode.HTML,
     )
 
-
-@router.message(Command("settings", "s"))
 async def cmd_settings(message: Message):
     if not is_owner(message.from_user.id):
         await message.answer(f"Only the bot owner can change settings{_DOT}", parse_mode=ParseMode.MARKDOWN_V2)
